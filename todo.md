@@ -20,6 +20,7 @@
 * Have the Lupa project locally :ok:
 * Setup the Lupa library locally :ok:
 * Import Lupa locally from Python :ok:
+* Create a LuaRuntime object from Python :ok:
 * Modify Lupa so that LuaRuntime can accept an already existent Lua state :ok:
 * In the library, create a LuaRuntime with the already existent Lua state
 * In the library, attribute this LuaRuntime to a variable "lua" in Python

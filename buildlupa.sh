@@ -2,7 +2,7 @@
 
 pushd lupa
 rm lupa/_lupa.c
-python setup.py build --force
+python setup.py build
 popd
 
 libdir=$(find lupa -maxdepth 2 \
