@@ -7,7 +7,7 @@
 * Make the library link against Python :ok:
 * In the library, initialize and finalize Python :ok:
 * In the library, print Hello World from Python :ok:
-* In the library, import Lupa from Python
+* In the library, import Lupa from Python :ok:
 * Have the Lupa project locally
 * Setup the Lupa library locally
 * Import Lupa locally from Python
