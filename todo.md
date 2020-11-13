@@ -17,7 +17,7 @@
     The flags passed to `dlopen` are `RTLD_NOW` (resolve all symbols before `dlopen` returns) and `RTLD_GLOBAL`
     (symbols are available to dynamic libraries subsequently loaded).
 
-* Have the Lupa project locally
+* Have the Lupa project locally :ok:
 * Setup the Lupa library locally
 * Import Lupa locally from Python
 * Modify Lupa so that LuaRuntime can accept an already existent Lua state
