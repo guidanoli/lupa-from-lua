@@ -4,7 +4,7 @@
 #include <assert.h>
 
 #include <Python.h>
-#include <lua.h>
+#include <lauxlib.h>
 
 #if defined(__linux__)
 #   include <dlfcn.h>
@@ -18,28 +18,23 @@ DLL_EXPORT int luaopen_lupafromlua(lua_State* L)
 #   if !defined(PYTHON_LIBRT)
 #      error PYTHON_LIBRT must be defined when building under Linux!
 #   endif
-	{
-		/* Links to Python runtime library */
-		void *ok = dlopen(PYLIB_STR(PYTHON_LIBRT), RTLD_NOW | RTLD_GLOBAL);
-		assert(ok); (void) ok;
-	}
+	/* Links to Python runtime library */
+	if (dlopen(PYLIB_STR(PYTHON_LIBRT), RTLD_NOW | RTLD_GLOBAL) == NULL)
+		return luaL_error(L, "Could not link to Python runtime library\n");
 #endif
 
 	/* Initialize Python without signal handlers */
 	Py_InitializeEx(0);
 
 	/* Check if Python was initialized successfully */
-	if (!Py_IsInitialized()) {
-		lua_pushliteral(L, "Could not initialize Python");
-		lua_error(L); /* Does long jump */
-	}
+	if (!Py_IsInitialized())
+		return luaL_error(L, "Could not initialize Python");
 	
 	/* Imports lupa */
 	PyObject* lupa = PyImport_ImportModule("lupa");	
 	if (lupa == NULL) {
 		Py_Finalize();
-		lua_pushliteral(L, "Could not import lupa");
-		lua_error(L); /* Does long jump */
+		return luaL_error(L, "Could not import lupa");
 	}
 
 	/* Finalize Python */
