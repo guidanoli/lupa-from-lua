@@ -1,0 +1,5 @@
+add_library(lupafromlua SHARED lupafromlua.c)
+target_include_directories(lupafromlua PUBLIC ${LUA_INCLUDE_DIR})
+if(WIN32)
+	target_link_libraries(lupafromlua ${LUA_LIBRARIES})
+endif()
