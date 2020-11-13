@@ -14,7 +14,7 @@
     The solution is linking dynamically against the Python runtime library with `dlopen`. This has
     also been done before in bastibe's fork of Lunatic Python [(2)]. The Python runtime library name
     is obtained by CMake, defined as a macro (`PYTHON_LIBRT`) in C so that it can be passed to `dlopen` [(3)].
-    The flags passed to `dlopen` are `RTLD_NOW` (resolve all symbols before dlopen returns) and `RTLD_GLOBAL`
+    The flags passed to `dlopen` are `RTLD_NOW` (resolve all symbols before `dlopen` returns) and `RTLD_GLOBAL`
     (symbols are available to dynamic libraries subsequently loaded).
 
 * Have the Lupa project locally
