@@ -1,6 +1,6 @@
 # To do list
 
-* Write a CMakeLists.txt that finds Lua
+* Write a CMakeLists.txt that finds Lua :ok:
 * Add a library to CMakeLists.txt that links to Lua
 * Write a Lua library in C
 * Make CMake find the Python libraries
