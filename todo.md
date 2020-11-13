@@ -4,7 +4,7 @@
 * Add a library to CMakeLists.txt that links to Lua :ok:
 * Write a Lua library in C :ok:
 * Make CMake find the Python libraries :ok:
-* Make the library link against Python
+* Make the library link against Python :ok:
 * In the library, initialize and finalize Python
 * In the library, print Hello World from Python
 * In the library, import Lupa from Python
