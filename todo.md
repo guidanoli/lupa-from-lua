@@ -22,7 +22,7 @@
 * Import Lupa locally from Python :ok:
 * Create a LuaRuntime object from Python :ok:
 * Modify Lupa so that LuaRuntime can accept an already existent Lua state :ok:
-* In the library, create a LuaRuntime with the already existent Lua state
+* In the library, create a LuaRuntime with the already existent Lua state :ok:
 * In the library, attribute this LuaRuntime to a variable "lua" in Python
 * Make the library return a table with the "python" table
 

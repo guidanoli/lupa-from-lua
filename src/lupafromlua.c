@@ -19,6 +19,14 @@ DLL_EXPORT int luaopen_lupafromlua(lua_State* L)
 		 *constructor_kwargs = NULL,
 		 *lua_runtime_obj = NULL;
 
+#if PY_MAJOR_VERSION >= 3
+	wchar_t *argv[] = {L"<lua>", 0};
+#else
+	char *argv[] = {"<lua>", 0};
+#endif
+	/* Set program name */
+	Py_SetProgramName(argv[0]);
+
 #if defined(__linux__)
 #   define STR(s) #s
 #   define PYLIB_STR(s) STR(s)
@@ -40,6 +48,9 @@ DLL_EXPORT int luaopen_lupafromlua(lua_State* L)
 		lua_pushliteral(L, "Could not initialize Python");
 		goto finalize;
 	}
+
+	/* Set sys.argv variable */
+	PySys_SetArgv(1, argv);
 	
 	/* Imports lupa */
 	lupa = PyImport_ImportModule("lupa");	
@@ -69,16 +80,15 @@ DLL_EXPORT int luaopen_lupafromlua(lua_State* L)
 		goto deallocate;
 	}
 
-	/*
+	/* Construct dictionary */
 	constructor_kwargs = Py_BuildValue("{s:O}", "state", lua_state_capsule);
 	if (constructor_kwargs == NULL) {
 		lua_pushliteral(L, "Could not allocate dict");
 		goto deallocate;
 	}
-	*/
 
 	/* Call lupa.LuaRuntime constructor */
-	lua_runtime_obj = PyObject_Call(lua_runtime_class, constructor_args, NULL);
+	lua_runtime_obj = PyObject_Call(lua_runtime_class, constructor_args, constructor_kwargs);
 	if (lua_runtime_obj == NULL) {
 		lua_pushliteral(L, "Could not create LuaRuntime object");
 		goto deallocate;
