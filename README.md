@@ -19,6 +19,14 @@ cmake ..
 [Here, you can tweak CMakeCache.txt if the wrong Lua or Python versions were picked]
 ```
 
+If you are using some kind of virtual environment, you can set the `PYTHON_EXECUTABLE` variable accordingly.
+For example, if using pyenv:
+
+```
+[In the build directory]
+cmake .. -DPYTHON_EXECUTABLE=`pyenv which python`
+```
+
 And you can install `lupa` with the bash script:
 
 ```
