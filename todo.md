@@ -23,8 +23,8 @@
 * Create a LuaRuntime object from Python :ok:
 * Modify Lupa so that LuaRuntime can accept an already existent Lua state :ok:
 * In the library, create a LuaRuntime with the already existent Lua state :ok:
+* Make the library return a table with the "python" table :ok:
 * In the library, attribute this LuaRuntime to a variable "lua" in Python
-* Make the library return a table with the "python" table
 
 [(1)]: https://mail.python.org/pipermail/new-bugs-announce/2008-November/003322.html
 [(2)]: https://github.com/bastibe/lunatic-python/blob/master/src/pythoninlua.c#L641
