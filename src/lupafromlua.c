@@ -94,7 +94,13 @@ DLL_EXPORT int luaopen_lupafromlua(lua_State* L)
 		goto deallocate;
 	}
 
-	return 0;
+	/* Checks that the module table is on top of stack */
+	if (lua_gettop(L) < 1 || lua_type(L, -1) != LUA_TTABLE) {
+		lua_pushliteral(L, "Missing table on top of Lua stack");
+		goto deallocate;
+	}
+
+	return 1;
 
 	/* In case of failure, deallocate in reverse order */
 deallocate:

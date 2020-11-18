@@ -4,9 +4,9 @@
 
 package.cpath = package.cpath .. ";./lib/?.so"
 
-local loaded, libpath = require('lupafromlua')
+local python, libpath = require('lupafromlua')
 
-if loaded then
+if python then
 	print("lupafromlua successfully loaded from "..libpath)
 else
 	os.exit(1)
