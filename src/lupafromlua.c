@@ -17,7 +17,8 @@ DLL_EXPORT int luaopen_lupafromlua(lua_State* L)
 		 *lua_state_capsule = NULL,
 		 *constructor_args = NULL,
 		 *constructor_kwargs = NULL,
-		 *lua_runtime_obj = NULL;
+		 *lua_runtime_obj = NULL,
+		 *main_module = NULL;
 
 #if PY_MAJOR_VERSION >= 3
 	wchar_t *argv[] = {L"<lua>", 0};
@@ -51,7 +52,7 @@ DLL_EXPORT int luaopen_lupafromlua(lua_State* L)
 
 	/* Set sys.argv variable */
 	PySys_SetArgv(1, argv);
-	
+
 	/* Imports lupa */
 	lupa = PyImport_ImportModule("lupa");	
 	if (lupa == NULL) {
@@ -97,6 +98,19 @@ DLL_EXPORT int luaopen_lupafromlua(lua_State* L)
 	/* Checks that the module table is on top of stack */
 	if (lua_gettop(L) < 1 || lua_type(L, -1) != LUA_TTABLE) {
 		lua_pushliteral(L, "Missing table on top of Lua stack");
+		goto deallocate;
+	}
+
+	/* Get Python main module */
+	main_module = PyImport_AddModule("__main__");
+	if (main_module == NULL) {
+		lua_pushliteral(L, "Missing Python main module");
+		goto deallocate;
+	}
+
+	/* Set LuaRuntime as lua in the Python main module global scope */
+	if (PyObject_SetAttrString(main_module, "lua", lua_runtime_obj) < 0) {
+		lua_pushliteral(L, "Could not set LuaRuntime object in the global scope");
 		goto deallocate;
 	}
 

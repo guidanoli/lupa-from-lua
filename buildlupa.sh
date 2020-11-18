@@ -1,12 +1,8 @@
 #!/usr/bin/env bash
 
-pushd lupa
+cd lupa
 rm lupa/_lupa.c
 python setup.py build
-popd
+cd ..
 
-libdir=$(find lupa -maxdepth 2 \
-                   -type d \
-		   -regex "lupa/build/lib.*");
-
-export PYTHONPATH="$libdir"
+source setuplupa.sh
