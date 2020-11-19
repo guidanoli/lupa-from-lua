@@ -9,7 +9,7 @@ local python, libpath = require('lupafromlua')
 if python then
 	print("lupafromlua successfully loaded from "..libpath)
 else
-	os.exit(1)
+	error("Could not load lupafromlua")
 end
 
 local builtins = python.as_attrgetter(python.builtins).__dict__
