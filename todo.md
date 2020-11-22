@@ -25,8 +25,8 @@
 * In the library, create a LuaRuntime with the already existent Lua state :ok:
 * Make the library return a table with the "python" table :ok:
 * In the library, attribute this LuaRuntime to a variable "lua" in Python :ok:
-* Register a different function for eval in the Lua table for interacting with Python
-* Implement a function for eval that evaluates a string in the global scope of the main module
+* Register a different function for eval in the Lua table for interacting with Python :ok:
+* Implement a function for eval that evaluates a string in the global scope of the main module :ok:
 * Create a structure for testing Lupa from the Lua side
 
 [(1)]: https://mail.python.org/pipermail/new-bugs-announce/2008-November/003322.html

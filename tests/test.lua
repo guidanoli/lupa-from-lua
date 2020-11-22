@@ -41,3 +41,7 @@ end
 print()
 print("Dictionary mapping x to x^2 for x from 1 to 10:")
 print(dict)
+
+lua = python.eval('lua')
+
+print(lua.eval('1 + 1'))
