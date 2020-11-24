@@ -77,6 +77,19 @@ function Testbench:AsAttributeGetter_Dict()
 	assert(get_func("key1", python.none) == "value1")
 end
 
+function Testbench:AsAttributeGetter_Builtins()
+	local builtins = python.builtins
+	-- Since builtins is a module, it does not implement the
+	-- sequence protocol, which means that by default, lupa
+	-- assumes attribute getter protocol in Python
+	local l1 = builtins.list
+	local l2 = python.as_attrgetter(builtins).list
+
+	-- Which means that l1 should be equal to l2 in Python
+	local py_eq = python.eval("lambda x, y: x == y")
+	assert(py_eq(l1,l2))
+end
+
 ------------------------------------------------------------------------------
 -- Test framework
 ------------------------------------------------------------------------------
