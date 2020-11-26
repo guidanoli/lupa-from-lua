@@ -4,9 +4,38 @@
 
 local Framework = require "tests/framework"
 
-package.cpath = package.cpath .. ";./lib/?.so"
+package.cpath = package.cpath .. ";./lib/?.so;./lib/?.dll"
 
 local python = assert(require("lupafromlua"))
+
+-- Utility functions
+
+python.equal = python.eval("lambda x, y: x == y")
+
+python.list = function(...)
+	local l = python.builtins.list()
+		for _, item in ipairs(table.pack(...)) do
+			python.as_attrgetter(l).append(item)
+		end
+	return l
+end
+
+python.tuple = function(...)
+	local l = python.list(...)
+	return python.builtins.tuple(l)
+end
+
+python.dict = function(t)
+	local d = python.builtins.dict()
+	if t ~= nil then
+		for key, value in pairs(t) do
+			d[key] = value
+		end
+	end
+	return d
+end
+
+-- Test cases
 
 Testbench = {
 	meta = {
@@ -42,7 +71,7 @@ function Testbench:AsAttributeGetter_List()
 	assert(not pcall(function()
 		-- Since list implements the sequence protocol, lupa
 		-- by default assumes item getter protocol in Python
-		local append_func_err = l.append
+		return l.append
 	end))
 	
 	-- By using the as_attrgetter, lupa understands that
@@ -56,12 +85,12 @@ function Testbench:AsAttributeGetter_List()
 end
 
 function Testbench:AsAttributeGetter_Dict()
-	local d = python.builtins.dict()
+	local d = python.dict()
 	
 	assert(not pcall(function()
 		-- Since dict implements the sequence protocol, lupa
 		-- by default assumes item getter protocol in Python
-		local get_func_err = d.get
+		return d.get
 	end))
 	
 	-- By using the as_attrgetter, lupa understands that
@@ -88,8 +117,7 @@ function Testbench:AsAttributeGetter_Builtins()
 	local l2 = python.as_attrgetter(builtins).list
 
 	-- Which means that l1 should be equal to l2 in Python
-	local py_eq = python.eval("lambda x, y: x == y")
-	assert(py_eq(l1,l2))
+	assert(python.equal(l1,l2))
 end
 
 function Testbench:AsItemGetter_List()
@@ -100,7 +128,7 @@ function Testbench:AsItemGetter_List()
 		-- by default assumes item getter protocol in Python
 
 		-- But the list is empty so it will fail
-		local first_element = l[0]
+		return l[0]
 	end))
 
 	-- Populate the list with numbers in order
@@ -124,14 +152,14 @@ function Testbench:AsItemGetter_List()
 end
 
 function Testbench:AsItemGetter_Dict()
-	local d = python.builtins.dict()
+	local d = python.dict()
 
 	assert(not pcall(function ()
 		-- Since dict implements the sequence protocol, lupa
 		-- by default assumes item getter protocol in Python
 
 		-- But the dict is empty so it will fail
-		local any_element = d["key"]
+		return d["key"]
 	end))
 
 	-- Populate the dict with numbers in order
@@ -149,6 +177,62 @@ function Testbench:AsItemGetter_Dict()
 	for i = 0, 10 do
 		-- Check that the items were added
 		assert(python.as_itemgetter(d)[i] == i)
+	end
+end
+
+function Testbench:AsFunction_Eval()
+	local eval_asfunction = python.as_function(python.eval)
+
+	-- Even though eval is already a wrapper (userdata),
+	-- it should be possible to wrap it one more time
+	assert(eval_asfunction("1 + 1") == 2)
+end
+
+function Testbench:Eval()
+	local testcases = {
+		{ "1", 1 },
+		{ "1 + 1", 2 },
+		{ "2 * 3", 6 },
+		{ "10 / 5", 2 },
+		{ "2 ** 4", 16 },
+		{ "10 % 7", 3 },
+		{ "[]", python.list() },
+		{ "[1]", python.list(1) },
+		{ "[1, 2, 3]", python.list(1, 2, 3) },
+		{ "{}", python.dict() },
+		{ "{'a': 1}", python.dict({ a = 1 }) },
+		{ "{'a': 1, 'b': 2, 'c': 3}", python.dict({ a = 1, b = 2, c = 3 }) },
+		{ "()", python.tuple() },
+		{ "(1, )", python.tuple(1) },
+		{ "(1, 2, 3)", python.tuple(1, 2, 3) },
+		{ "abs(-1)", 1 },
+		{ "abs(1)", 1 },
+		{ "len([])", 0 },
+		{ "len([1])", 1 },
+		{ "len([1, 2, 3])", 3 },
+		{ "len({})", 0 },
+		{ "len({1:1})", 1 },
+		{ "len({1:1, 2:2, 3:3})", 3 },
+		{ "max([1, 2, 3, -1])", 3 },
+		{ "min([1, 2, 3, -1])", -1 },
+		{ "next(iter([1, 2, 3, -1]))", 1 },
+		{ "sorted([1, -5, 3, -1])", python.list(-5, -1, 1, 3) },
+		{ "sum([1, -5, 3, -1])", -2 },
+		{ "None", python.none },
+		{ "None", nil },
+		{ "False", false },
+		{ "True", true },
+	}
+
+	for testindex, testcase in ipairs(testcases) do
+		local input, output = table.unpack(testcase)
+		local ok, ret = pcall(python.eval, input)
+		if not ok then
+			error("failed test #" .. testindex .. ": " .. tostring(ret))
+		end
+		if not python.equal(output, ret) then
+			error("failed test #" .. testindex .. ": obtained " .. tostring(ret))
+		end
 	end
 end
 

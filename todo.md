@@ -29,9 +29,9 @@
 * Implement a function for eval that evaluates a string in the global scope of the main module :ok:
 * Create a structure for testing Lupa from the Lua side :ok:
 * Test all of the entries provided in the python table...
-  * `as_itemgetter`
+  * `as_itemgetter` :ok:
   * `as_attrgetter` :ok:
-  * `as_function`
+  * `as_function` :ok:
   * `eval`
   * `builtins`
   * `iter`
