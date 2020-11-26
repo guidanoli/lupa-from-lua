@@ -1,44 +1,53 @@
 # Lupa from Lua
 
-Make sure to clone this repository recursively:
+Make sure to clone this repository recursively.
 
-```
-[In the project root]
+```sh
 git submodule update --init --recursive
-```
-
-## Setup
-
-You can compile `lupafromlua` with CMake:
-
-```
-[In the project root]
-mkdir build
-cd build
-cmake ..
-[Here, you can tweak CMakeCache.txt if the wrong Lua or Python versions were picked]
-```
-
-If you are using some kind of virtual environment, you can set the `PYTHON_EXECUTABLE` variable accordingly.
-For example, if using pyenv:
-
-```
-[In the build directory]
-cmake .. -DPYTHON_EXECUTABLE=`pyenv which python`
-```
-
-And you can install `lupa` with the bash script:
-
-```
-[In the project root]
-source buildlupa.sh
 ```
 
 ## Dependencies
 
 * CMake >= 3.0
+  * program
 * Lua >= 5.0
-* Python >= 3.5 with shared library [1]
-  * Python modules for Lupa: `pip install -r lupa/requirements.txt`
+  * program
+  * static library
+* Python >= 3.5
+  * program
+  * dynamic library
 
-[1] You can compile Python from source and pass --enable-shared to configure
+## Setup
+
+You may first configure a build system for your machine by using CMake. You may substite `$BUILDIR` for a name of your liking.
+
+```sh
+mkdir $BUILDIR
+cmake -B $BUILDIR
+```
+
+You may have to tweak `$BUILDIR/CMakeCache.txt` to correct libraries and include directories paths to be used. Having configured the project nicely, you may build the Lua C library.
+
+```sh
+cmake --build $BUILDIR
+```
+
+Now, you may build locally the modified lupa extension module.
+
+```sh
+source buildlupa.sh
+```
+
+## Testing
+
+Having built both the Lua C library and lupa, you need to setup the environment so that Python finds the modified version of lupa locally.
+
+```sh
+source setuplupa.sh
+```
+
+Now you may run the test suite. A report should be printed out.
+
+```sh
+lua tests/testbench.lua
+```

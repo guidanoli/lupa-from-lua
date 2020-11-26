@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 
 cd lupa
-rm lupa/_lupa.c
+rm -f lupa/_lupa.c
+pip install -r requirements.txt
 python setup.py build
 cd ..
-
-source setuplupa.sh
