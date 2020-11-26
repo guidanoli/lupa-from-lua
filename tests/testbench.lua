@@ -1,22 +1,22 @@
--- Tests lupafromlua
--- Run from root directory
--- $ lua tests/test.lua
+-----------------------------------------------------------
+-- Tests the lupafromlua Lua C
+-- Run from the project root directory
+-----------------------------------------------------------
 
-local Framework = require "tests/framework"
+local Framework = require "tests.framework"
+local python = require "lupafromlua"
 
-package.cpath = package.cpath .. ";./lib/?.so;./lib/?.dll"
-
-local python = assert(require("lupafromlua"))
-
+-----------------------------------------------------------
 -- Utility functions
+-----------------------------------------------------------
 
 python.equal = python.eval("lambda x, y: x == y")
 
 python.list = function(...)
 	local l = python.builtins.list()
-		for _, item in ipairs(table.pack(...)) do
-			python.as_attrgetter(l).append(item)
-		end
+	for _, item in ipairs(table.pack(...)) do
+		python.as_attrgetter(l).append(item)
+	end
 	return l
 end
 
@@ -35,7 +35,9 @@ python.dict = function(t)
 	return d
 end
 
+-----------------------------------------------------------
 -- Test cases
+-----------------------------------------------------------
 
 Testbench = {
 	meta = {
@@ -235,6 +237,10 @@ function Testbench:Eval()
 		end
 	end
 end
+
+-----------------------------------------------------------
+-- Test running
+-----------------------------------------------------------
 
 local report = Framework:RunTestbench(Testbench)
 

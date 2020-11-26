@@ -21,10 +21,6 @@ else()
 endif()
 
 add_custom_command(TARGET lupafromlua POST_BUILD
-	COMMAND ${CMAKE_COMMAND} -E make_directory
-		"${PROJECT_SOURCE_DIR}/lib")
-
-add_custom_command(TARGET lupafromlua POST_BUILD
 	COMMAND ${CMAKE_COMMAND} -E copy
 		"$<TARGET_FILE:lupafromlua>"
-		"${PROJECT_SOURCE_DIR}/lib")
+		"${PROJECT_SOURCE_DIR}")
