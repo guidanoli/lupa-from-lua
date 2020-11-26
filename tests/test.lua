@@ -2,15 +2,17 @@
 -- Run from root directory
 -- $ lua tests/test.lua
 
+local Framework = require "tests/framework"
+
 package.cpath = package.cpath .. ";./lib/?.so"
 
 local python = assert(require("lupafromlua"))
 
-------------------------------------------------------------------------------
--- Test bench
-------------------------------------------------------------------------------
-
-Testbench = {}
+Testbench = {
+	meta = {
+		name = "lupafromlua",
+	},
+}
 
 function Testbench:LuaVersion()
 	local lua = python.eval("lua")
@@ -90,33 +92,66 @@ function Testbench:AsAttributeGetter_Builtins()
 	assert(py_eq(l1,l2))
 end
 
-------------------------------------------------------------------------------
--- Test framework
-------------------------------------------------------------------------------
+function Testbench:AsItemGetter_List()
+	local l = python.builtins.list()
 
-print("Running lupafromlua tests...")
-print()
+	assert(not pcall(function ()
+		-- Since list implements the sequence protocol, lupa
+		-- by default assumes item getter protocol in Python
 
-local passed = 0
-local failed = 0
+		-- But the list is empty so it will fail
+		local first_element = l[0]
+	end))
 
-for testcase, testfunc in pairs(Testbench) do
-	local ok, errmsg = pcall(testfunc, Testbench)
-	if ok then
-		print(testcase, "Passed")
-		passed = passed + 1
-	else
-		print(testcase, "Failed", errmsg)
-		failed = failed + 1
+	-- Populate the list with numbers in order
+	for i = 0, 10 do
+		python.as_attrgetter(l).append(i)
+	end
+
+	-- Using the brackets notation
+	for i = 0, 10 do
+		-- Check that the items were added
+		-- Remember that Python indexation begins with 0
+		assert(l[i] == i)
+	end
+
+	-- Using python.as_itemgetter
+	for i = 0, 10 do
+		-- Check that the items were added
+		-- Remember that Python indexation begins with 0
+		assert(python.as_itemgetter(l)[i] == i)
 	end
 end
 
-print()
-print((failed + passed) .. " tests run")
-if failed > 0 then
-	print(failed .. " failed")
-else
-	print("All passed")
+function Testbench:AsItemGetter_Dict()
+	local d = python.builtins.dict()
+
+	assert(not pcall(function ()
+		-- Since dict implements the sequence protocol, lupa
+		-- by default assumes item getter protocol in Python
+
+		-- But the dict is empty so it will fail
+		local any_element = d["key"]
+	end))
+
+	-- Populate the dict with numbers in order
+	for i = 0, 10 do
+		d[i] = i
+	end
+
+	-- Using the brackets notation
+	for i = 0, 10 do
+		-- Check that the items were added
+		assert(d[i] == i)
+	end
+
+	-- Using python.as_itemgetter
+	for i = 0, 10 do
+		-- Check that the items were added
+		assert(python.as_itemgetter(d)[i] == i)
+	end
 end
 
-os.exit(failed)
+local report = Framework:RunTestbench(Testbench)
+
+os.exit(report.failed)
