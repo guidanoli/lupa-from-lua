@@ -27,12 +27,14 @@
 * In the library, attribute this LuaRuntime to a variable "lua" in Python :ok:
 * Register a different function for eval in the Lua table for interacting with Python :ok:
 * Implement a function for eval that evaluates a string in the global scope of the main module :ok:
+* Implement an adaptation for exec that executes a string in the global scope of the main module :ok:
 * Create a structure for testing Lupa from the Lua side :ok:
 * Test all of the entries provided in the python table...
   * `as_itemgetter` :ok:
   * `as_attrgetter` :ok:
   * `as_function` :ok:
   * `eval` :ok:
+  * `exec` :ok:
   * `builtins`
   * `iter`
   * `none`

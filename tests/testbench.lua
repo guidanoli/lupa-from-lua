@@ -7,6 +7,19 @@ local framework = require "tests.framework"
 local python = require "tests.lupa"
 
 -----------------------------------------------------------
+-- Setup
+-----------------------------------------------------------
+
+local names = 0
+
+-- Avoids name collision in Python global scope
+local newname = function()
+	local name = names
+	names = names + 1
+	return "t" .. name
+end
+
+-----------------------------------------------------------
 -- Test cases
 -----------------------------------------------------------
 
@@ -212,6 +225,107 @@ function Testbench:TestEval()
 			error("failed test #" .. testindex .. ": obtained " .. tostring(ret))
 		end
 	end
+end
+
+function Testbench:TestExecAssignment()
+	local varname = newname()
+	local value = math.random(128)
+
+	python.exec(varname .. " = " .. value)
+
+	assert(python.eval(varname) == value)
+end
+
+function Testbench:TestExecCall()
+	local funcname = newname()
+	local varname = newname()
+	local paramname = newname()
+	local value = math.random(128)
+
+	python.exec(varname .. " = None")
+	python.exec("def " .. funcname .. "(" .. paramname .. "): global " .. varname .. "; " .. varname .. " = " .. paramname)
+	python.exec(funcname .. "(" .. value .. ")")
+
+	assert(python.eval(varname) == value)
+end
+
+function Testbench:TestExecAssert()
+	python.exec("assert True")
+	assert(not pcall(function()
+		python.exec("assert False")
+	end))
+end
+
+function Testbench:TestExecPass()
+	python.exec("pass")
+end
+
+function Testbench:TestExecAugmentedAssignment()
+	local varname = newname()
+
+	python.exec(varname .. " = 321")
+	python.exec(varname .. " += 123")
+	assert(python.eval(varname) == 444)
+end
+
+function Testbench:TestExecDel()
+	local varname = newname()
+
+	python.exec(varname .. " = { 1:1 }")
+	assert(python.equal(python.eval(varname), python.dict(1, 1)))
+	python.exec("del " .. varname .. "[1]")
+	assert(python.equal(python.eval(varname), python.dict()))
+end
+
+function Testbench:TestExecReturn()
+	assert(not pcall(function()
+		python.exec("return")
+	end))
+end
+
+function Testbench:TestExecYield()
+	assert(not pcall(function()
+		python.exec("yield")
+	end))
+end
+
+function Testbench:TestExecRaise()
+	assert(not pcall(function()
+		python.exec("raise RuntimeError")
+	end))
+end
+
+function Testbench:TestExecBreak()
+	assert(not pcall(function()
+		python.exec("break")
+	end))
+end
+
+function Testbench:TestExecContinue()
+	assert(not pcall(function()
+		python.exec("continue")
+	end))
+end
+
+function Testbench:TestExecImport()
+	local alias = newname()
+
+	python.exec("import lupa")
+	python.exec("from lupa import LuaRuntime as " .. alias)
+end
+
+function Testbench:TestExecGlobal()
+	local varname = newname()
+
+	python.exec("global " .. varname)
+end
+
+function Testbench:TestExecNonLocal()
+	local varname = newname()
+
+	assert(not pcall(function()
+		python.exec("nonlocal " .. varname)
+	end))
 end
 
 -----------------------------------------------------------
