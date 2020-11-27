@@ -35,9 +35,9 @@
   * `as_function` :ok:
   * `eval` :ok:
   * `exec` :ok:
-  * `builtins`
-  * `iter`
-  * `none`
+  * `builtins` :ok:
+  * `iter` :ok:
+  * `none` :ok:
   * `iterex`
   * `enumerate`
 

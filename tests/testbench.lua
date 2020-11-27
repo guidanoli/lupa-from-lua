@@ -30,7 +30,7 @@ Testbench = {
 function Testbench:TestLuaVersion()
 	local lua = python.eval("lua")
 	local lupa_lua_version = lua.lua_version
-	
+
 	-- The tuple (MAJOR, MINOR) is returned
 	local lupa_lua_major = lupa_lua_version[0]
 	local lupa_lua_minor = lupa_lua_version[1]
@@ -51,18 +51,18 @@ end
 
 function Testbench:TestAsAttributeGetter_List()
 	local l = python.builtins.list()
-	
+
 	assert(not pcall(function()
 		-- Since list implements the sequence protocol, lupa
 		-- by default assumes item getter protocol in Python
 		return l.append
 	end))
-	
+
 	-- By using the as_attrgetter, lupa understands that
 	-- any indexation is in fact access to an attribute
 	local append_func = python.as_attrgetter(l).append
 	append_func(0)
-	
+
 	-- Check the effect of calling the append function
 	local len_func = python.as_attrgetter(l).__len__
 	assert(len_func() == 1)
@@ -70,23 +70,23 @@ end
 
 function Testbench:TestAsAttributeGetter_Dict()
 	local d = python.dict()
-	
+
 	assert(not pcall(function()
 		-- Since dict implements the sequence protocol, lupa
 		-- by default assumes item getter protocol in Python
 		return d.get
 	end))
-	
+
 	-- By using the as_attrgetter, lupa understands that
 	-- any indexation is in fact access to an attribute
 	local get_func = python.as_attrgetter(d).get
 	assert(get_func("key", python.none) == nil)
-	
+
 	-- Insert an entry to the dictionary by using the
 	-- traditional brackets notation
 	d["key"] = "value"
 	assert(get_func("key", python.none) == "value")
-	
+
 	-- Test another form of indextation, using the dot notation
 	d.key1 = "value1"
 	assert(get_func("key1", python.none) == "value1")
@@ -243,7 +243,9 @@ function Testbench:TestExecCall()
 	local value = math.random(128)
 
 	python.exec(varname .. " = None")
-	python.exec("def " .. funcname .. "(" .. paramname .. "): global " .. varname .. "; " .. varname .. " = " .. paramname)
+	python.exec("def " .. funcname .. "(" .. paramname .. "):\n" ..
+		"\tglobal " .. varname .. "\n" ..
+		"\t" .. varname .. " = " .. paramname)
 	python.exec(funcname .. "(" .. value .. ")")
 
 	assert(python.eval(varname) == value)
@@ -326,6 +328,79 @@ function Testbench:TestExecNonLocal()
 	assert(not pcall(function()
 		python.exec("nonlocal " .. varname)
 	end))
+end
+
+function Testbench:TestIterList()
+	local l = python.list(1, 2, 3)
+	local i = 1
+	for li in python.iter(l) do
+		assert(li == i)
+		i = i + 1
+	end
+end
+
+function Testbench:TestIterDict()
+	local d = python.dict("a", 1, "b", 2, "c", 3)
+	local letters = { "a", "b", "c" }
+	local i = 1
+	for di in python.iter(d) do
+		assert(di == letters[i])
+		i = i + 1
+	end
+end
+
+function Testbench:TestIterClass()
+	local classname = newname()
+
+	python.exec("class " .. classname .. ":\n" ..
+		"\tdef __init__(self, obj):\n" ..
+		"\t\tself.obj = obj\n" ..
+		"\tdef __iter__(self):\n" ..
+		"\t\treturn iter(self.obj)")
+
+	local l = python.list(1, 2, 3)
+	local instance = python.eval(classname)(l)
+
+	local i = 1
+	for ci in python.iter(instance) do
+		assert(ci == i)
+		i = i + 1
+	end
+end
+
+function Testbench:TestNone()
+	assert(python.equal(python.none, nil))
+	assert(tostring(python.none) == "None")
+	assert(python.builtins.str(python.none) == "None")
+	assert(python.builtins.str(nil) == "None")
+	assert(python.none)
+	assert(python.none ~= nil)
+
+	local d = python.dict(nil, nil)
+
+	local entered = false
+	for di in python.iter(d) do
+		assert(di == python.none)
+		entered = true
+	end
+	assert(entered)
+
+	entered = false
+	for k, v in python.iterex(python.as_attrgetter(d).items()) do
+		assert(k == python.none)
+		assert(v == nil)
+		entered = true
+	end
+	assert(entered)
+
+	local l = python.list(nil, nil)
+	print(l)
+	entered = false
+	for li in python.iter(l) do
+		assert(li == python.none)
+		entered = true
+	end
+	assert(entered)
 end
 
 -----------------------------------------------------------

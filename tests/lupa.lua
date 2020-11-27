@@ -8,8 +8,12 @@ python.equal = python.eval("lambda x, y: x == y")
 
 python.list = function(...)
 	local l = python.builtins.list()
-	for _, item in ipairs(table.pack(...)) do
+	local t = table.pack(...)
+	local i = 1
+	while i <= t.n do
+		local item = t[i]
 		python.as_attrgetter(l).append(item)
+		i = i + 1
 	end
 	return l
 end
