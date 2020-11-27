@@ -11,12 +11,10 @@ local python = require "tests.lupa"
 -----------------------------------------------------------
 
 Testbench = {
-	meta = {
-		name = "lupafromlua",
-	},
+	name = "lupafromlua",
 }
 
-function Testbench:LuaVersion()
+function Testbench:TestLuaVersion()
 	local lua = python.eval("lua")
 	local lupa_lua_version = lua.lua_version
 	
@@ -38,7 +36,7 @@ function Testbench:LuaVersion()
 	assert(semvernums[2] == lupa_lua_minor)
 end
 
-function Testbench:AsAttributeGetter_List()
+function Testbench:TestAsAttributeGetter_List()
 	local l = python.builtins.list()
 	
 	assert(not pcall(function()
@@ -57,7 +55,7 @@ function Testbench:AsAttributeGetter_List()
 	assert(len_func() == 1)
 end
 
-function Testbench:AsAttributeGetter_Dict()
+function Testbench:TestAsAttributeGetter_Dict()
 	local d = python.dict()
 	
 	assert(not pcall(function()
@@ -81,7 +79,7 @@ function Testbench:AsAttributeGetter_Dict()
 	assert(get_func("key1", python.none) == "value1")
 end
 
-function Testbench:AsAttributeGetter_Builtins()
+function Testbench:TestAsAttributeGetter_Builtins()
 	local builtins = python.builtins
 	-- Since builtins is a module, it does not implement the
 	-- sequence protocol, which means that by default, lupa
@@ -93,7 +91,7 @@ function Testbench:AsAttributeGetter_Builtins()
 	assert(python.equal(l1,l2))
 end
 
-function Testbench:AsItemGetter_List()
+function Testbench:TestAsItemGetter_List()
 	local l = python.builtins.list()
 
 	assert(not pcall(function ()
@@ -124,7 +122,7 @@ function Testbench:AsItemGetter_List()
 	end
 end
 
-function Testbench:AsItemGetter_Dict()
+function Testbench:TestAsItemGetter_Dict()
 	local d = python.dict()
 
 	assert(not pcall(function ()
@@ -153,7 +151,7 @@ function Testbench:AsItemGetter_Dict()
 	end
 end
 
-function Testbench:AsFunction_Eval()
+function Testbench:TestAsFunction_Eval()
 	local eval_asfunction = python.as_function(python.eval)
 
 	-- Even though eval is already a wrapper (userdata),
@@ -161,7 +159,7 @@ function Testbench:AsFunction_Eval()
 	assert(eval_asfunction("1 + 1") == 2)
 end
 
-function Testbench:Eval()
+function Testbench:TestEval()
 	local testcases = {
 		{ "1", 1 },
 		{ "1 + 1", 2 },

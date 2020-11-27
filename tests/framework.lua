@@ -7,10 +7,8 @@ local Framework = {}
 -- Run all test cases of a test bench, printing a report at the end
 -- Arguments:
 -- tb = {
---   meta = {
---     name = (testbench name) [string],
---   },
---   [(test case name)] = (test case function) [function],
+--   name = (testbench name) [string],
+--   Test.* = (test case function) [function],
 -- }
 -- Returns:
 -- * {
@@ -19,14 +17,14 @@ local Framework = {}
 --   failed = (failed test cases count) [number],
 -- }
 function Framework:RunTestbench(tb)
-    print("[TEST] Running " .. tb.meta.name .. " tests...")
+    print("[TEST] Running " .. tb.name .. " tests...")
     print()
 
     local passed = 0
     local failed = 0
 
     for testname, testfunc in pairs(tb) do
-        if type(testfunc) == "function" then
+        if testname:find("^Test") ~= nil then
             local ok, errmsg = pcall(testfunc, tb)
             if ok then
                 print("[PASS] " .. testname)
