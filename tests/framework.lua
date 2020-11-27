@@ -1,3 +1,7 @@
+---------------------------------
+-- Unit testing framework
+---------------------------------
+
 local Framework = {}
 
 -- Run all test cases of a test bench, printing a report at the end

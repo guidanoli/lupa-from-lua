@@ -32,7 +32,7 @@
   * `as_itemgetter` :ok:
   * `as_attrgetter` :ok:
   * `as_function` :ok:
-  * `eval`
+  * `eval` :ok:
   * `builtins`
   * `iter`
   * `none`

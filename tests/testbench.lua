@@ -3,37 +3,8 @@
 -- Run from the project root directory
 -----------------------------------------------------------
 
-local Framework = require "tests.framework"
-local python = require "lupafromlua"
-
------------------------------------------------------------
--- Utility functions
------------------------------------------------------------
-
-python.equal = python.eval("lambda x, y: x == y")
-
-python.list = function(...)
-	local l = python.builtins.list()
-	for _, item in ipairs(table.pack(...)) do
-		python.as_attrgetter(l).append(item)
-	end
-	return l
-end
-
-python.tuple = function(...)
-	local l = python.list(...)
-	return python.builtins.tuple(l)
-end
-
-python.dict = function(t)
-	local d = python.builtins.dict()
-	if t ~= nil then
-		for key, value in pairs(t) do
-			d[key] = value
-		end
-	end
-	return d
-end
+local framework = require "tests.framework"
+local python = require "tests.lupa"
 
 -----------------------------------------------------------
 -- Test cases
@@ -202,11 +173,16 @@ function Testbench:Eval()
 		{ "[1]", python.list(1) },
 		{ "[1, 2, 3]", python.list(1, 2, 3) },
 		{ "{}", python.dict() },
-		{ "{'a': 1}", python.dict({ a = 1 }) },
-		{ "{'a': 1, 'b': 2, 'c': 3}", python.dict({ a = 1, b = 2, c = 3 }) },
+		{ "{'a': 1}", python.dict("a", 1) },
+		{ "{'a': 1, 'b': 2, 'c': 3}", python.dict("a", 1, "b", 2, "c", 3) },
 		{ "()", python.tuple() },
 		{ "(1, )", python.tuple(1) },
 		{ "(1, 2, 3)", python.tuple(1, 2, 3) },
+		{ "set()", python.set() },
+		{ "{1}", python.set(1) },
+		{ "{1}", python.set(1, 1, 1) },
+		{ "{1, 2, 3}", python.set(1, 2, 3) },
+		{ "{1, 2, 3}", python.set(1, 2, 3, 2, 2, 1) },
 		{ "abs(-1)", 1 },
 		{ "abs(1)", 1 },
 		{ "len([])", 0 },
@@ -224,6 +200,8 @@ function Testbench:Eval()
 		{ "None", nil },
 		{ "False", false },
 		{ "True", true },
+		{ "(lambda x: x*2)(10)", 20 },
+		{ "(lambda x: x*2)([1, 2, 3])", python.list(1, 2, 3, 1, 2, 3) },
 	}
 
 	for testindex, testcase in ipairs(testcases) do
@@ -242,6 +220,6 @@ end
 -- Test running
 -----------------------------------------------------------
 
-local report = Framework:RunTestbench(Testbench)
+local report = framework:RunTestbench(Testbench)
 
 os.exit(report.failed)
