@@ -1,13 +1,12 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.12)
 project(lupafromlua)
 
 # Find Lua
 find_package(Lua 5.0 REQUIRED MODULE)
 
 # Find Python
-set(Python_FIND_VIRTUALENV FIRST)
-find_package(PythonInterp 3.5 REQUIRED)
-find_package(PythonLibs 3.5 REQUIRED MODULE)
+set(Python_USE_STATIC_LIBS FALSE)
+find_package(Python 3.5 REQUIRED COMPONENTS Development)
 
 # Add source code
 add_subdirectory(src)

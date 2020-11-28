@@ -8,7 +8,7 @@ git submodule update --init --recursive
 
 ## Dependencies
 
-* CMake >= 3.0
+* CMake >= 3.12
   * program
 * Lua >= 5.0
   * program
@@ -26,7 +26,7 @@ mkdir $BUILDIR
 cmake -B $BUILDIR
 ```
 
-You may have to tweak `$BUILDIR/CMakeCache.txt` to correct libraries and include directories paths to be used. Having configured the project nicely, you may build the Lua C library.
+If necessary, you can tweak `$BUILDIR/CMakeCache.txt` to correct libraries and include directories paths to be used. Having configured the project nicely, you may build the Lua C library.
 
 ```sh
 cmake --build $BUILDIR
