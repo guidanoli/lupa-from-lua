@@ -394,13 +394,62 @@ function Testbench:TestNone()
 	assert(entered)
 
 	local l = python.list(nil, nil)
-	print(l)
 	entered = false
 	for li in python.iter(l) do
 		assert(li == python.none)
 		entered = true
 	end
 	assert(entered)
+end
+
+function Testbench:TestIterEx()
+	local d = python.dict("a", 1, "b", 2, "c", 3)
+	local d_items = python.as_attrgetter(d).items()
+	local keys = {"a", "b", "c"}
+	local values = {1, 2, 3}
+	local i = 1
+
+	for key, value in python.iterex(d_items) do
+		assert(key == keys[i])
+		assert(value == values[i])
+		i = i + 1
+	end
+
+	local generatorname = newname()
+	python.exec("def " .. generatorname .. "(n):\n" ..
+		"\tfor i in range(n):\n" ..
+		"\t\tyield i, -i, 2*i, i*i")
+
+	local n = 10
+	local g = python.eval(generatorname .. "(" .. n .. ")")
+
+	i = 0
+	for a, b, c, d in python.iterex(g) do
+		assert(a == i)
+		assert(b == -i)
+		assert(c == 2*i)
+		assert(d == i*i)
+		i = i + 1
+	end
+end
+
+function Testbench:TestEnumerate()
+	local l, entered
+
+	l = python.list(0, 1, 2, 3)
+	entered = false
+	for i, li in python.enumerate(l) do
+		assert(i == li)
+		entered = true
+	end
+	assert(entered)
+
+	l = python.list()
+	entered = false
+	for i, li in python.enumerate(l) do
+		entered = true
+	end
+	assert(not entered)
 end
 
 -----------------------------------------------------------

@@ -38,8 +38,8 @@
   * `builtins` :ok:
   * `iter` :ok:
   * `none` :ok:
-  * `iterex`
-  * `enumerate`
+  * `iterex` :ok:
+  * `enumerate` :ok:
 
 [(1)]: https://mail.python.org/pipermail/new-bugs-announce/2008-November/003322.html
 [(2)]: https://github.com/bastibe/lunatic-python/blob/master/src/pythoninlua.c#L641
