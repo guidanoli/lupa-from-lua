@@ -50,7 +50,7 @@ function Testbench:TestLuaVersion()
 end
 
 function Testbench:TestAsAttributeGetter_List()
-	local l = python.builtins.list()
+	local l = python.list()
 
 	assert(not pcall(function()
 		-- Since list implements the sequence protocol, lupa
@@ -105,7 +105,7 @@ function Testbench:TestAsAttributeGetter_Builtins()
 end
 
 function Testbench:TestAsItemGetter_List()
-	local l = python.builtins.list()
+	local l = python.list()
 
 	assert(not pcall(function ()
 		-- Since list implements the sequence protocol, lupa
@@ -450,6 +450,43 @@ function Testbench:TestEnumerate()
 		entered = true
 	end
 	assert(not entered)
+end
+
+function Testbench:TestCallback()
+	local cb_called = false
+	local lua_cb = function() cb_called = true end
+	local python_cb = python.wrap(lua_cb)
+
+	assert(not cb_called)
+	python_cb()
+	assert(cb_called)
+end
+
+function Testbench:TestRoundtrip()
+	local testcases = {
+		nil,
+		python.none,
+		"ação",
+		123456789,
+		0.125,
+		{},
+		{ "a", "b", "c" },
+		{ a=1, b=2, c=3 },
+		self,
+		function () return 42 end,
+		coroutine.create(function () return 42 end),
+	}
+
+	for testindex, testcase in ipairs(testcases) do
+		local python_cb = python.wrap(function() return testcase end)
+		local ok, ret = pcall(python_cb)
+		if not ok then
+			error("failed test #" .. testindex .. ": " .. tostring(ret))
+		end
+		if ret ~= testcase then
+			error("failed test #" .. testindex .. ": obtained " .. tostring(ret))
+		end
+	end
 end
 
 -----------------------------------------------------------

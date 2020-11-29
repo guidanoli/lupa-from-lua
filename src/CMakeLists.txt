@@ -14,7 +14,7 @@ target_include_directories(lupafromlua PUBLIC
 if(UNIX)
 	get_filename_component(PYTHON_LIBRT ${Python_LIBRARIES} NAME)
 	target_compile_definitions(lupafromlua PRIVATE "PYTHON_LIBRT=${PYTHON_LIBRT}")
-endif(UNIX)
+endif()
 
 if(WIN32)
 	target_link_libraries(lupafromlua ${Python_LIBRARIES} ${LUA_LIBRARIES})

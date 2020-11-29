@@ -6,6 +6,8 @@ local python = require "lupafromlua"
 
 python.equal = python.eval("lambda x, y: x == y")
 
+python.wrap = python.eval("lambda f: lambda *args: f(*args)")
+
 python.list = function(...)
 	local l = python.builtins.list()
 	local append_func = python.as_attrgetter(l).append
