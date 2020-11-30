@@ -22,7 +22,6 @@ git submodule update --init --recursive
 You may first configure a build system for your machine by using CMake. You may substite `$BUILDIR` for a name of your liking.
 
 ```sh
-mkdir $BUILDIR
 cmake -B $BUILDIR
 ```
 
