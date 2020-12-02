@@ -8,12 +8,23 @@ find_package(Lua 5.0 REQUIRED MODULE)
 set(Python_USE_STATIC_LIBS FALSE)
 find_package(Python 3.5 REQUIRED COMPONENTS Interpreter Development)
 
+# Get Pyhon extension module suffix
+execute_process(
+	COMMAND "${Python_EXECUTABLE}" -c "import sysconfig; print(sysconfig.get_config_vars()['SO'], end='')"
+	OUTPUT_VARIABLE PYTHON_EXT_SUFFIX
+	RESULT_VARIABLE PYTHON_EXT_SUFFIX_NOT_FOUND)
+
+if(PYTHON_EXT_SUFFIX_NOT_FOUND)
+	message(FATAL_ERROR "Could not obtain extension module suffix")
+endif()
+
 set(LUPA_PROJECT_DIR "${PROJECT_SOURCE_DIR}/lupa")
 set(LUPA_SOURCE_DIR "${LUPA_PROJECT_DIR}/lupa")
+set(LUPA_BINARY_FILE "${LUPA_SOURCE_DIR}/_lupa${PYTHON_EXT_SUFFIX}")
 
 # Build lupa
 add_custom_command(
-	OUTPUT "${LUPA_SOURCE_DIR}/_lupa.c"
+	OUTPUT "${LUPA_BINARY_FILE}"
 	COMMAND "${CMAKE_COMMAND}" -E rm -f "${LUPA_SOURCE_DIR}/_lupa.c"
 	COMMAND "${Python_EXECUTABLE}" -m pip install -r requirements.txt
 	COMMAND "${Python_EXECUTABLE}" setup.py develop --use-bundle
@@ -22,7 +33,7 @@ add_custom_command(
 	COMMENT "Setting up lupa in development mode"
 	VERBATIM)
 
-add_custom_target(lupa ALL DEPENDS "${LUPA_SOURCE_DIR}/_lupa.c")
+add_custom_target(lupa ALL DEPENDS "${LUPA_BINARY_FILE}")
 
 # Add source code
 add_subdirectory(src)
