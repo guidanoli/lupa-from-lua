@@ -10,7 +10,7 @@ find_package(Python 3.5 REQUIRED COMPONENTS Interpreter Development)
 
 # Get Pyhon extension module suffix
 execute_process(
-	COMMAND "${Python_EXECUTABLE}" -c "import sysconfig; print(sysconfig.get_config_vars()['SO'], end='')"
+	COMMAND "${Python_EXECUTABLE}" -c "import sysconfig; print(sysconfig.get_config_var('EXT_SUFFIX'), end='')"
 	OUTPUT_VARIABLE PYTHON_EXT_SUFFIX
 	RESULT_VARIABLE PYTHON_EXT_SUFFIX_NOT_FOUND)
 
