@@ -29,17 +29,7 @@
 * Implement a function for eval that evaluates a string in the global scope of the main module :ok:
 * Implement an adaptation for exec that executes a string in the global scope of the main module :ok:
 * Create a structure for testing Lupa from the Lua side :ok:
-* Test all of the entries provided in the python table...
-  * `as_itemgetter` :ok:
-  * `as_attrgetter` :ok:
-  * `as_function` :ok:
-  * `eval` :ok:
-  * `exec` :ok:
-  * `builtins` :ok:
-  * `iter` :ok:
-  * `none` :ok:
-  * `iterex` :ok:
-  * `enumerate` :ok:
+* Test all of the entries provided in the python table :ok:
 
 [(1)]: https://mail.python.org/pipermail/new-bugs-announce/2008-November/003322.html
 [(2)]: https://github.com/bastibe/lunatic-python/blob/master/src/pythoninlua.c#L641
