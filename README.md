@@ -35,7 +35,7 @@ cmake --build $BUILD_DIR
 
 ## Testing
 
-Having built the dependencies, you may run the test suite. A report should be printed out.
+Having built the project, you may run the test suite. A report should be printed out.
 
 ```sh
 lua tests/testbench.lua
