@@ -15,21 +15,29 @@ execute_process(
 	RESULT_VARIABLE PYTHON_EXT_SUFFIX_NOT_FOUND)
 
 if(PYTHON_EXT_SUFFIX_NOT_FOUND)
-	message(FATAL_ERROR "Could not obtain extension module suffix")
+	message(FATAL_ERROR "Could not obtain Python extension module suffix")
 endif()
 
 set(LUPA_PROJECT_DIR "${PROJECT_SOURCE_DIR}/lupa")
 set(LUPA_SOURCE_DIR "${LUPA_PROJECT_DIR}/lupa")
 set(LUPA_BINARY_FILE "${LUPA_SOURCE_DIR}/_lupa${PYTHON_EXT_SUFFIX}")
 
+file(GLOB_RECURSE LUPA_SOURCE_FILES
+	"${LUPA_SOURCE_DIR}/*.pyx"
+	"${LUPA_SOURCE_DIR}/*.pxd"
+	"${LUPA_SOURCE_DIR}/*.pxi")
+
+file(GLOB_RECURSE LUPA_GENERATED_FILES
+	"${LUPA_SOURCE_DIR}/*.c")
+
 # Build lupa
 add_custom_command(
 	OUTPUT "${LUPA_BINARY_FILE}"
-	COMMAND "${CMAKE_COMMAND}" -E rm -f "${LUPA_SOURCE_DIR}/_lupa.c"
+	COMMAND "${CMAKE_COMMAND}" -E rm -f ${LUPA_GENERATED_FILES}
 	COMMAND "${Python_EXECUTABLE}" -m pip install -r requirements.txt
 	COMMAND "${Python_EXECUTABLE}" setup.py develop --use-bundle
 	WORKING_DIRECTORY "${LUPA_PROJECT_DIR}"
-	DEPENDS "${LUPA_SOURCE_DIR}/_lupa.pyx"
+	DEPENDS "${LUPA_SOURCE_FILES}"
 	COMMENT "Setting up lupa in development mode"
 	VERBATIM)
 
