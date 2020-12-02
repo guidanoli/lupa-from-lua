@@ -8,12 +8,12 @@ git submodule update --init --recursive
 
 ## Dependencies
 
-* CMake >= 3.12
+* [CMake] >= 3.12
   * program
-* Lua >= 5.1
+* [Lua] >= 5.1
   * program
   * static library
-* Python >= 3.5
+* [Python] >= 3.5
   * program
   * dynamic library
 
@@ -38,3 +38,7 @@ Having built the dependencies, now you may run the test suite. A report should b
 ```sh
 lua tests/testbench.lua
 ```
+
+[CMake]: https://cmake.org/
+[Lua]: https://www.lua.org/
+[Python]: https://www.python.org/
