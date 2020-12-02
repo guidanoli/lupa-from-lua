@@ -10,7 +10,7 @@ git submodule update --init --recursive
 
 * CMake >= 3.12
   * program
-* Lua >= 5.0
+* Lua >= 5.1
   * program
   * static library
 * Python >= 3.5
@@ -31,21 +31,9 @@ If necessary, you can tweak `$BUILDIR/CMakeCache.txt` to correct libraries and i
 cmake --build $BUILDIR
 ```
 
-Now, you may build locally the modified lupa extension module.
-
-```sh
-source buildlupa.sh
-```
-
 ## Testing
 
-Having built both the Lua C library and lupa, you need to setup the environment so that Python finds the modified version of lupa locally.
-
-```sh
-source setuplupa.sh
-```
-
-Now you may run the test suite. A report should be printed out.
+Having built the dependencies, now you may run the test suite. A report should be printed out.
 
 ```sh
 lua tests/testbench.lua
