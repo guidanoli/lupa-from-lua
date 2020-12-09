@@ -35,7 +35,7 @@ DLL_EXPORT int luaopen_lupafromlua(lua_State *L)
 	/* Links to Python runtime library */
 	if (dlopen(PYLIB_STR(PYTHON_LIBRT), RTLD_NOW | RTLD_GLOBAL) == NULL) {
 		lua_pushliteral(L, "Could not link to Python runtime library");
-		goto luaerr;
+		goto error;
 	}
 #	else
 #		error PYTHON_LIBRT must be defined when building under Linux!
@@ -48,7 +48,7 @@ DLL_EXPORT int luaopen_lupafromlua(lua_State *L)
 	/* Check if Python was initialized successfully */
 	if (!Py_IsInitialized()) {
 		lua_pushliteral(L, "Could not initialize Python");
-		goto finalize;
+		goto error;
 	}
 
 	/* Set sys.argv variable */
@@ -60,7 +60,7 @@ DLL_EXPORT int luaopen_lupafromlua(lua_State *L)
 	lupa = PyImport_ImportModule("lupa");
 	if (lupa == NULL) {
 		lua_pushliteral(L, "Could not import lupa");
-		goto deallocate;
+		goto error;
 	}
 
 	/* Get LuaRuntime from lupa
@@ -69,7 +69,7 @@ DLL_EXPORT int luaopen_lupafromlua(lua_State *L)
 	lua_runtime_class = PyObject_GetAttrString(lupa, "LuaRuntime");
 	if (lua_runtime_class == NULL) {
 		lua_pushliteral(L, "Could not get LuaRuntime from lupa");
-		goto deallocate;
+		goto error;
 	}
 
 	/* Encapsulate the Lua state with the label "lua_State"
@@ -78,7 +78,7 @@ DLL_EXPORT int luaopen_lupafromlua(lua_State *L)
 	lua_state_capsule = PyCapsule_New(L, "lua_State", NULL);
 	if (lua_state_capsule == NULL) {
 		lua_pushliteral(L, "Could not create capsule for Lua state");
-		goto deallocate;
+		goto error;
 	}
 
 	/* Construct an empty tuple
@@ -87,7 +87,7 @@ DLL_EXPORT int luaopen_lupafromlua(lua_State *L)
 	constructor_args = PyTuple_New(0);
 	if (constructor_args == NULL) {
 		lua_pushliteral(L, "Could not allocate tuple");
-		goto deallocate;
+		goto error;
 	}
 
 	/* Construct a dictionary
@@ -96,7 +96,7 @@ DLL_EXPORT int luaopen_lupafromlua(lua_State *L)
 	constructor_kwargs = Py_BuildValue("{s:O}", "state", lua_state_capsule);
 	if (constructor_kwargs == NULL) {
 		lua_pushliteral(L, "Could not allocate dict");
-		goto deallocate;
+		goto error;
 	}
 
 	/* Call the lupa.LuaRuntime constructor
@@ -105,13 +105,13 @@ DLL_EXPORT int luaopen_lupafromlua(lua_State *L)
 	lua_runtime_obj = PyObject_Call(lua_runtime_class, constructor_args, constructor_kwargs);
 	if (lua_runtime_obj == NULL) {
 		lua_pushliteral(L, "Could not create LuaRuntime object");
-		goto deallocate;
+		goto error;
 	}
 
 	/* Checks that the module table is on top of stack */
 	if (lua_gettop(L) < 1 || lua_type(L, -1) != LUA_TTABLE) {
 		lua_pushliteral(L, "Missing table on top of Lua stack");
-		goto deallocate;
+		goto error;
 	}
 
 	/* Get the Python main module
@@ -120,7 +120,7 @@ DLL_EXPORT int luaopen_lupafromlua(lua_State *L)
 	main_module = PyImport_AddModule("__main__");
 	if (main_module == NULL) {
 		lua_pushliteral(L, "Missing Python main module");
-		goto deallocate;
+		goto error;
 	}
 
 	/* Set LuaRuntime as lua in the Python main module global scope
@@ -128,23 +128,16 @@ DLL_EXPORT int luaopen_lupafromlua(lua_State *L)
 	   __main__.lua = <lua_runtime_obj> */
 	if (PyObject_SetAttrString(main_module, "lua", lua_runtime_obj) < 0) {
 		lua_pushliteral(L, "Could not set LuaRuntime object in the global scope");
-		goto deallocate;
+		goto error;
 	}
 
 	return 1;
 
-deallocate:
-	/* Deallocate the Python objects */
-	Py_XDECREF(lua_runtime_obj);
-	Py_XDECREF(constructor_kwargs);
-	Py_XDECREF(constructor_args);
-	Py_XDECREF(lua_state_capsule);
-	Py_XDECREF(lua_runtime_class);
-	Py_XDECREF(lupa);
-finalize:
+error:
 	/* Finalize Python */
-	Py_Finalize();
-luaerr:
+	if (Py_IsInitialized())
+		Py_Finalize();
+	
 	/* Raise an error in Lua */
 	return lua_error(L);
 }
