@@ -1,10 +1,13 @@
 cmake_minimum_required(VERSION 3.12)
 project(lupafromlua)
 
+# Find Git executable
+find_package(Git REQUIRED)
+
 # Find Lua static library
 find_package(Lua 5.1 REQUIRED MODULE)
 
-# Find Python dynamic library
+# Find Python dynamic library and executable
 set(Python_USE_STATIC_LIBS FALSE)
 find_package(Python 3.5 REQUIRED COMPONENTS Interpreter Development)
 
@@ -21,6 +24,7 @@ endif()
 set(LUPA_PROJECT_DIR "${PROJECT_SOURCE_DIR}/lupa")
 set(LUPA_SOURCE_DIR "${LUPA_PROJECT_DIR}/lupa")
 set(LUPA_BINARY_FILE "${LUPA_SOURCE_DIR}/_lupa${PYTHON_EXT_SUFFIX}")
+set(LUA_PROJECT_DIR "${LUPA_PROJECT_DIR}/third-party/lua")
 
 file(GLOB_RECURSE LUPA_SOURCE_FILES
 	"${LUPA_SOURCE_DIR}/*.pyx"
@@ -33,7 +37,9 @@ file(GLOB_RECURSE LUPA_GENERATED_FILES
 # Build lupa
 add_custom_command(
 	OUTPUT "${LUPA_BINARY_FILE}"
-	COMMAND "${CMAKE_COMMAND}" -E rm -f ${LUPA_GENERATED_FILES}
+	COMMAND "${CMAKE_COMMAND}" -E rm -f ${LUPA_GENERATED_FILES} ${LUPA_BINARY_FILE}
+	COMMAND "${GIT_EXECUTABLE}" -C ${LUA_PROJECT_DIR} fetch
+	COMMAND "${GIT_EXECUTABLE}" -C ${LUA_PROJECT_DIR} checkout "v${LUA_VERSION_STRING}"
 	COMMAND "${Python_EXECUTABLE}" -m pip install -r requirements.txt
 	COMMAND "${Python_EXECUTABLE}" setup.py develop --use-bundle
 	WORKING_DIRECTORY "${LUPA_PROJECT_DIR}"
