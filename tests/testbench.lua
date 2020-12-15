@@ -489,6 +489,44 @@ function Testbench:TestRoundtrip()
 	end
 end
 
+function Testbench:TestMultipleReturnValues()
+	local testcases = {
+		{
+			input = { "a", "b", "c" },
+			output = python.tuple("a", "b", "c")
+		},
+		{
+			input = { "a", "b", nil, "c" },
+			output = python.tuple("a", "b", nil, "c"),
+		},
+		{
+			input = { "a", "b", nil }, -- nil is ignored in Lua
+			output = python.tuple("a", "b"),
+		},
+		{
+			input = { "a", "b", python.none },
+			output = python.tuple("a", "b", python.none),
+		},
+		{
+			input = { "a", "b", nil, python.none }, -- nil is no longer ignored
+			output = python.tuple("a", "b", python.none, python.none),
+		},
+	}
+
+	local identity = python.wrap(function(...) return ... end)
+
+	for testindex, testcase in ipairs(testcases) do
+		local ok, ret = pcall(identity, table.unpack(testcase.input))
+		if not ok then
+			error("failed test #" .. testindex .. ": " .. tostring(ret))
+		end
+		if not python.equal(ret, testcase.output) then
+			error("failed test #" .. testindex .. ": obtained " .. tostring(ret))
+		end
+	end
+	
+end
+
 -----------------------------------------------------------
 -- Test running
 -----------------------------------------------------------
