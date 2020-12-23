@@ -533,4 +533,6 @@ end
 
 local report = framework:RunTestbench(Testbench)
 
-os.exit(report.failed)
+if report.failed ~= 0 then
+	os.exit(1)
+end

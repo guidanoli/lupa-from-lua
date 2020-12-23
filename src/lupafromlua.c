@@ -4,7 +4,7 @@
 #include <wchar.h>
 
 #include "Python.h"
-#include "lua.h"
+#include "lauxlib.h"
 
 #if defined(__linux__)
 #	include <dlfcn.h>
@@ -14,10 +14,22 @@
 #define check_true(condition, error_message) \
 do { \
 	if (!(condition)) { \
-	       	lua_pushliteral(L, error_message); \
-		goto error; \
+		lupafromlua_gc(L); \
+		return luaL_error(L, error_message); \
 	} \
 } while(0)
+
+/* key for table in the registry that when garbage collected finalizes Python */
+static const char* const LUPAFROMLUA = "_LUPAFROMLUA";
+
+/* __gc tag method for LUPAFROMLUA table: finalizes Python */
+static int lupafromlua_gc(lua_State *L)
+{
+	if (Py_IsInitialized())
+		Py_Finalize();
+
+	return 0;
+}
 
 DLL_EXPORT int luaopen_lupafromlua(lua_State *L)
 {
@@ -50,6 +62,17 @@ DLL_EXPORT int luaopen_lupafromlua(lua_State *L)
 #		error PYTHON_LIBRT must be defined when building under Linux!
 #	endif
 #endif
+
+	/* Create LUPAFROMLUA table */
+	luaL_getsubtable(L, LUA_REGISTRYINDEX, LUPAFROMLUA);
+
+	/* Create metatable for LUPAFROMLUA */
+	lua_createtable(L, 0, 1);
+	lua_pushcfunction(L, lupafromlua_gc);
+
+	/* Set finalizer for LUPAFROMLUA table */
+	lua_setfield(L, -2, "__gc");
+	lua_setmetatable(L, -2);
 
 	/* Initialize Python without signal handlers */
 	Py_InitializeEx(0);
@@ -114,12 +137,4 @@ DLL_EXPORT int luaopen_lupafromlua(lua_State *L)
 			"Could not set LuaRuntime object in the global scope");
 
 	return 1;
-
-error:
-	/* Finalize Python */
-	if (Py_IsInitialized())
-		Py_Finalize();
-	
-	/* Raise an error in Lua */
-	return lua_error(L);
 }
