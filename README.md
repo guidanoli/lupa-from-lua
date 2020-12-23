@@ -1,6 +1,7 @@
 # Lupa from Lua
 
 Currently, [Lupa] is a Python extension module which can only be imported from Python. This project intends to port this library to Lua in the form of a C library, allowing Lua to interact with Python.
+For this purpose, the Lupa source code had to be slightly modified in the fork that resides in this repository.
 
 ## Dependencies
 
@@ -21,6 +22,12 @@ Make sure to clone this repository recursively.
 git submodule update --init --recursive
 ```
 
+In order to install the modified version of Lupa, it is necessary to first uninstall any official release.
+
+```sh
+python -m pip uninstall lupa
+```
+
 You may first configure a build system for your machine with CMake. You can name the build directory however you like. For the sake of generality, we'll be referecing it as `$BUILD_DIR`.
 
 ```sh
@@ -33,17 +40,21 @@ If necessary, you can tweak `$BUILD_DIR/CMakeCache.txt` to correct any path wron
 cmake --build $BUILD_DIR
 ```
 
-### Uninstalling Lupa
-
-If you wish to uninstall the Lupa module, you can run the following command in the `lupa` directory.
+If you wish to later uninstall the Lupa fork, you can run the following command in the `lupa` directory.
 
 ```sh
 python setup.py develop --uninstall
 ```
 
+After uninstalling it, you can still reinstall it too.
+
+```sh
+python setup.py develop
+```
+
 ## Testing
 
-Having built the project, you may run the test suite. A report should be printed out.
+Having built the project, you may run the test suite from the repository root. A report should be printed out.
 
 ```sh
 lua tests/testbench.lua

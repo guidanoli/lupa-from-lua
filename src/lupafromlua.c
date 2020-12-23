@@ -10,6 +10,15 @@
 #	include <dlfcn.h>
 #endif
 
+/* Checks if a condition is true. If not, raises an error in Lua. */
+#define check_true(condition, error_message) \
+do { \
+	if (!(condition)) { \
+	       	lua_pushliteral(L, error_message); \
+		goto error; \
+	} \
+} while(0)
+
 DLL_EXPORT int luaopen_lupafromlua(lua_State *L)
 {
 	PyObject *lupa = NULL,
@@ -32,11 +41,11 @@ DLL_EXPORT int luaopen_lupafromlua(lua_State *L)
 #	if defined(PYTHON_LIBRT)
 #		define STR(s) #s
 #		define PYLIB_STR(s) STR(s)
+
 	/* Links to Python runtime library */
-	if (dlopen(PYLIB_STR(PYTHON_LIBRT), RTLD_NOW | RTLD_GLOBAL) == NULL) {
-		lua_pushliteral(L, "Could not link to Python runtime library");
-		goto error;
-	}
+	check_true(dlopen(PYLIB_STR(PYTHON_LIBRT), RTLD_NOW | RTLD_GLOBAL),
+			"Could not link to Python runtime library");
+
 #	else
 #		error PYTHON_LIBRT must be defined when building under Linux!
 #	endif
@@ -46,10 +55,8 @@ DLL_EXPORT int luaopen_lupafromlua(lua_State *L)
 	Py_InitializeEx(0);
 
 	/* Check if Python was initialized successfully */
-	if (!Py_IsInitialized()) {
-		lua_pushliteral(L, "Could not initialize Python");
-		goto error;
-	}
+	check_true(Py_IsInitialized(),
+			"Could not initialize Python");
 
 	/* Set sys.argv variable */
 	PySys_SetArgv(1, argv);
@@ -57,79 +64,54 @@ DLL_EXPORT int luaopen_lupafromlua(lua_State *L)
 	/* Imports the lupa module
 	
 	   import lupa */
-	lupa = PyImport_ImportModule("lupa");
-	if (lupa == NULL) {
-		lua_pushliteral(L, "Could not import lupa");
-		goto error;
-	}
+	check_true(lupa = PyImport_ImportModule("lupa"),
+			"Could not import lupa");
 
 	/* Get LuaRuntime from lupa
 	
 	   = lupa.LuaRuntime */
-	lua_runtime_class = PyObject_GetAttrString(lupa, "LuaRuntime");
-	if (lua_runtime_class == NULL) {
-		lua_pushliteral(L, "Could not get LuaRuntime from lupa");
-		goto error;
-	}
+	check_true(lua_runtime_class = PyObject_GetAttrString(lupa, "LuaRuntime"),
+			"Could not get LuaRuntime from lupa");
 
 	/* Encapsulate the Lua state with the label "lua_State"
 	
 	   (this step cannot be recreated in Python) */
-	lua_state_capsule = PyCapsule_New(L, "lua_State", NULL);
-	if (lua_state_capsule == NULL) {
-		lua_pushliteral(L, "Could not create capsule for Lua state");
-		goto error;
-	}
+	check_true(lua_state_capsule = PyCapsule_New(L, "lua_State", NULL),
+			"Could not create capsule for Lua state");
 
 	/* Construct an empty tuple
 	
 	   = tuple() */
-	constructor_args = PyTuple_New(0);
-	if (constructor_args == NULL) {
-		lua_pushliteral(L, "Could not allocate tuple");
-		goto error;
-	}
+	check_true(constructor_args = PyTuple_New(0),
+			"Could not allocate tuple");
 
 	/* Construct a dictionary
 	
 	   = dict(state=<lua_state_capsule>) */
-	constructor_kwargs = Py_BuildValue("{s:O}", "state", lua_state_capsule);
-	if (constructor_kwargs == NULL) {
-		lua_pushliteral(L, "Could not allocate dict");
-		goto error;
-	}
+	check_true(constructor_kwargs = Py_BuildValue("{s:O}", "state", lua_state_capsule),
+			"Could not allocate dict");
 
 	/* Call the lupa.LuaRuntime constructor
 	
 	   = lupa.LuaRuntime(*constructor_args, **constructor_kwargs) */
-	lua_runtime_obj = PyObject_Call(lua_runtime_class, constructor_args, constructor_kwargs);
-	if (lua_runtime_obj == NULL) {
-		lua_pushliteral(L, "Could not create LuaRuntime object");
-		goto error;
-	}
+	check_true(lua_runtime_obj = PyObject_Call(lua_runtime_class, constructor_args, constructor_kwargs),
+			"Could not create LuaRuntime object");
 
 	/* Checks that the module table is on top of stack */
-	if (lua_gettop(L) < 1 || lua_type(L, -1) != LUA_TTABLE) {
-		lua_pushliteral(L, "Missing table on top of Lua stack");
-		goto error;
-	}
+	check_true(lua_gettop(L) >= 1 && lua_type(L, -1) == LUA_TTABLE,
+			"Missing table on top of Lua stack");
 
 	/* Get the Python main module
 	
 	   import __main__ */
-	main_module = PyImport_AddModule("__main__");
-	if (main_module == NULL) {
-		lua_pushliteral(L, "Missing Python main module");
-		goto error;
-	}
+	check_true(main_module = PyImport_AddModule("__main__"),
+			"Missing Python main module");
 
 	/* Set LuaRuntime as lua in the Python main module global scope
 	
 	   __main__.lua = <lua_runtime_obj> */
-	if (PyObject_SetAttrString(main_module, "lua", lua_runtime_obj) < 0) {
-		lua_pushliteral(L, "Could not set LuaRuntime object in the global scope");
-		goto error;
-	}
+	check_true(PyObject_SetAttrString(main_module, "lua", lua_runtime_obj) == 0,
+			"Could not set LuaRuntime object in the global scope");
 
 	return 1;
 
