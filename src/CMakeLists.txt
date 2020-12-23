@@ -8,7 +8,7 @@ set_target_properties(
 	LINKER_LANGUAGE C)
 
 target_include_directories(lupafromlua PUBLIC
-	${LUA_INCLUDE_DIR} ${Python_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR})
+	"${LUA_INCLUDE_DIR}" ${Python_INCLUDE_DIRS} "${CMAKE_CURRENT_SOURCE_DIR}")
 
 if(UNIX)
 	get_filename_component(PYTHON_LIBRT ${Python_LIBRARIES} NAME)
@@ -22,6 +22,6 @@ else()
 endif()
 
 add_custom_command(TARGET lupafromlua POST_BUILD
-	COMMAND ${CMAKE_COMMAND} -E copy
+	COMMAND "${CMAKE_COMMAND}" -E copy
 		"$<TARGET_FILE:lupafromlua>"
 		"${PROJECT_SOURCE_DIR}")
