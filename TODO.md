@@ -30,6 +30,7 @@
 * Implement an adaptation for exec that executes a string in the global scope of the main module :ok:
 * Create a structure for testing Lupa from the Lua side :ok:
 * Test all of the entries provided in the python table :ok:
+* Unload Python library when python module goes out of scope in Lua
 
 [(1)]: https://mail.python.org/pipermail/new-bugs-announce/2008-November/003322.html
 [(2)]: https://github.com/bastibe/lunatic-python/blob/master/src/pythoninlua.c#L641
