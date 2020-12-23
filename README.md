@@ -33,6 +33,14 @@ If necessary, you can tweak `$BUILD_DIR/CMakeCache.txt` to correct any path wron
 cmake --build $BUILD_DIR
 ```
 
+### Uninstalling Lupa
+
+If you wish to uninstall the Lupa module, you can run the following command in the `lupa` directory.
+
+```sh
+python setup.py develop --uninstall
+```
+
 ## Testing
 
 Having built the project, you may run the test suite. A report should be printed out.
