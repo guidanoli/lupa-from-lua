@@ -22,7 +22,7 @@ Make sure to clone this repository recursively.
 git submodule update --init --recursive
 ```
 
-In order to install the modified version of Lupa, it is necessary to first uninstall any official release.
+In order to install the Lupa fork, it is necessary to first uninstall any official release.
 
 ```sh
 python -m pip uninstall lupa
@@ -40,16 +40,11 @@ If necessary, you can tweak `$BUILD_DIR/CMakeCache.txt` to correct any path wron
 cmake --build $BUILD_DIR
 ```
 
-If you wish to later uninstall the Lupa fork, you can run the following command in the `lupa` directory.
+If you later wish to uninstall the Lupa fork, you can run the following command in the `lupa` directory.
+Also, by ommitting `--uninstall`, you reinstall the module without needing to rebuild it.
 
 ```sh
 python setup.py develop --uninstall
-```
-
-After uninstalling it, you can still reinstall it too.
-
-```sh
-python setup.py develop
 ```
 
 ## Testing
