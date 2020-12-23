@@ -13,10 +13,8 @@
 /* Checks if a condition is true. If not, raises an error in Lua. */
 #define check_true(condition, error_message) \
 do { \
-	if (!(condition)) { \
-		lupafromlua_gc(L); \
+	if (!(condition)) \
 		return luaL_error(L, error_message); \
-	} \
 } while(0)
 
 /* key for table in the registry that when garbage collected finalizes Python */
