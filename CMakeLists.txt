@@ -11,7 +11,7 @@ find_package(Lua 5.1 REQUIRED MODULE)
 set(Python_USE_STATIC_LIBS FALSE)
 find_package(Python 3.5 REQUIRED COMPONENTS Interpreter Development)
 
-# Get Pyhon extension module suffix
+# Get Python extension module suffix
 execute_process(
 	COMMAND "${Python_EXECUTABLE}" -c "import sysconfig; print(sysconfig.get_config_var('EXT_SUFFIX'), end='')"
 	OUTPUT_VARIABLE PYTHON_EXT_SUFFIX
