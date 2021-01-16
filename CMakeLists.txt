@@ -48,7 +48,7 @@ add_custom_command(
 	COMMAND "${GIT_EXECUTABLE}" -C "${LUA_PROJECT_DIR}" checkout "v${LUA_VERSION_STRING}"
 	COMMAND "${Python_EXECUTABLE}" -m pip install -r requirements.txt
 	COMMAND "${Python_EXECUTABLE}" setup.py build --use-bundle
-	COMMAND "${Python_EXECUTABLE}" setup.py develop
+	COMMAND "${Python_EXECUTABLE}" setup.py develop --user
 	WORKING_DIRECTORY "${LUPA_PROJECT_DIR}"
 	DEPENDS "${LUPA_SOURCE_FILES}"
 	COMMENT "Setting up lupa in development mode"
