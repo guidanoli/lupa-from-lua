@@ -44,7 +44,7 @@ If you later wish to uninstall the Lupa fork, you can run the following command 
 Also, by ommitting `--uninstall`, you reinstall the module without needing to rebuild it.
 
 ```sh
-python setup.py develop --uninstall
+python setup.py develop --uninstall --user
 ```
 
 ## Testing
