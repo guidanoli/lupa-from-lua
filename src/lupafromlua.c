@@ -18,7 +18,7 @@ do { \
 } while(0)
 
 /* key for table in the registry that when garbage collected finalizes Python */
-static const char* const LUPAFROMLUA = "_LUPAFROMLUA";
+static const char* const LUPAFROMLUA = "LUPAFROMLUA";
 
 /* __gc tag method for LUPAFROMLUA table: finalizes Python */
 static int lupafromlua_gc(lua_State *L)
