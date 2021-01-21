@@ -341,11 +341,10 @@ end
 
 function Testbench:TestIterDict()
 	local d = python.dict("a", 1, "b", 2, "c", 3)
-	local letters = { "a", "b", "c" }
-	local i = 1
+	local t = {a=1, b=2, c=3}
 	for di in python.iter(d) do
-		assert(di == letters[i])
-		i = i + 1
+		assert(d[di] == t[di])
+		t[di] = nil
 	end
 end
 
@@ -404,15 +403,12 @@ end
 
 function Testbench:TestIterEx()
 	local d = python.dict("a", 1, "b", 2, "c", 3)
+	local t = {a=1, b=2, c=3}
 	local d_items = python.as_attrgetter(d).items()
-	local keys = {"a", "b", "c"}
-	local values = {1, 2, 3}
-	local i = 1
 
 	for key, value in python.iterex(d_items) do
-		assert(key == keys[i])
-		assert(value == values[i])
-		i = i + 1
+		assert(t[key] == value)
+		t[key] = nil
 	end
 
 	local generatorname = newname()
