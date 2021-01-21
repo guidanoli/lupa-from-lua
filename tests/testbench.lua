@@ -19,6 +19,9 @@ local newname = function()
 	return "t" .. name
 end
 
+-- Check if current Lua version supports integers
+local hasintegers = math.tointeger ~= nil
+
 -----------------------------------------------------------
 -- Test cases
 -----------------------------------------------------------
@@ -521,6 +524,38 @@ function Testbench:TestMultipleReturnValues()
 		end
 	end
 	
+end
+
+function Testbench:TestIntegerFromLuaToPython()
+	local isint = python.eval('lambda n: type(n) is int')
+	local isfloat = python.eval('lambda n: type(n) is float')
+
+	assert(isint(1))
+	assert(isfloat(1.2))
+
+	if hasintegers then
+		-- Preserves underlying type
+		assert(isfloat(1.0))
+	else
+		-- Merely checks for decimals
+		assert(isint(1.0))
+	end
+end
+
+function Testbench:TestIntegerFromPythonToLua()
+	local one = python.eval('1')
+	local onef = python.eval('1.0')
+	local pi = python.eval('3.14')
+	
+	assert(one == 1)
+	assert(onef == 1.0)
+	assert(math.abs(pi - 3.14) < 1e-2)
+
+	if hasintegers then
+		assert(math.type(one) == 'integer')
+		assert(math.type(onef) == 'float')
+		assert(math.type(pi) == 'float')
+	end
 end
 
 -----------------------------------------------------------

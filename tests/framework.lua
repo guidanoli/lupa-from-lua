@@ -17,7 +17,7 @@ local Framework = {}
 --   failed = (failed test cases count) [number],
 -- }
 function Framework:RunTestbench(tb)
-    print("[TEST] Running " .. tb.name .. " tests...")
+    print("[ TEST ] Running " .. tb.name .. " tests...")
     print()
 
     local passed = 0
@@ -27,10 +27,10 @@ function Framework:RunTestbench(tb)
         if testname:find("^Test") ~= nil then
             local ok, errmsg = pcall(testfunc, tb)
             if ok then
-                print("[PASS] " .. testname)
+                print("[ PASS ] " .. testname)
                 passed = passed + 1
             else
-                print("[FAIL] " .. testname)
+                print("[ FAIL ] " .. testname)
                 print(errmsg)
                 failed = failed + 1
             end
@@ -38,11 +38,11 @@ function Framework:RunTestbench(tb)
     end
 
     print()
-    print("[TEST] " .. (failed + passed) .. " tests run")
+    print("[ TEST ] " .. (failed + passed) .. " tests run")
     if failed > 0 then
-        print("[TEST] " .. failed .. " failed")
+        print("[ TEST ] " .. failed .. " failed")
     else
-        print("[TEST] All passed")
+        print("[ TEST ] All passed")
     end
 
     return {

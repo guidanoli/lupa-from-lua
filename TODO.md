@@ -31,7 +31,7 @@
 * Create a structure for testing Lupa from the Lua side :ok:
 * Test all of the entries provided in the python table :ok:
 * Unload Python library when python module goes out of scope in Lua :ok:
-* Study and implement conversion of integers for Lua >= 5.3
+* Study and implement conversion of integers for Lua >= 5.3 :ok:
 * Study the implementation of garbage collection and investigate possible memory leaks
 * Study the implementation of named parameters using decorators
 * Study alternative implementations of named parameters
