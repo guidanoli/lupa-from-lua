@@ -5,16 +5,20 @@ project(lupafromlua)
 find_package(Git REQUIRED)
 
 # Find Lua static library
-find_package(Lua 5.1 REQUIRED MODULE)
+find_package(Lua REQUIRED MODULE)
+
+if("${LUA_VERSION_STRING}" VERSION_LESS "5.1")
+	message(WARNING "Versions of Lua previous to 5.1 might be incompatible")
+endif()
 
 # Find Python dynamic library and executable
 set(Python_USE_STATIC_LIBS FALSE)
 find_package(Python REQUIRED COMPONENTS Interpreter Development)
 
-if("${Python_VERSION}" VERSION_LESS "2.7.0")
-	message(WARNING "Versions of Python previous to 2.7.0 might be incompatible")
-elseif("${Python_VERSION}" VERSION_GREATER_EQUAL "3.0.0" AND "${Python_VERSION}" VERSION_LESS "3.5.0")
-	message(WARNING "Versions of Python 3 previous to 3.5.0 might be incompatible")
+if("${Python_VERSION}" VERSION_LESS "2.7")
+	message(WARNING "Versions of Python previous to 2.7 might be incompatible")
+elseif("${Python_VERSION}" VERSION_GREATER_EQUAL "3" AND "${Python_VERSION}" VERSION_LESS "3.5")
+	message(WARNING "Versions of Python 3 previous to 3.5 might be incompatible")
 endif()
 
 # Get Python extension module suffix
