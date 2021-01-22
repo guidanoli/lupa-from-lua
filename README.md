@@ -10,7 +10,7 @@ For this purpose, the Lupa source code had to be slightly modified in the fork t
 * [Lua] >= 5.1
   * program
   * static library
-* [Python] >= 2.7
+* [Python] 2.7 or >= 3.5
   * program
   * dynamic library
 
