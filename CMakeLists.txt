@@ -9,7 +9,13 @@ find_package(Lua 5.1 REQUIRED MODULE)
 
 # Find Python dynamic library and executable
 set(Python_USE_STATIC_LIBS FALSE)
-find_package(Python 2.7 REQUIRED COMPONENTS Interpreter Development)
+find_package(Python REQUIRED COMPONENTS Interpreter Development)
+
+if("${Python_VERSION}" VERSION_LESS "2.7.0")
+	message(WARNING "Versions of Python previous to 2.7.0 might be incompatible")
+elseif("${Python_VERSION}" VERSION_GREATER_EQUAL "3.0.0" AND "${Python_VERSION}" VERSION_LESS "3.5.0")
+	message(WARNING "Versions of Python 3 previous to 3.5.0 might be incompatible")
+endif()
 
 # Get Python extension module suffix
 execute_process(
