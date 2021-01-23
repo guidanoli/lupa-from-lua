@@ -1,8 +1,5 @@
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.14.7)
 project(lupafromlua)
-
-# Find Git executable
-find_package(Git REQUIRED)
 
 # Find Lua static library
 find_package(Lua REQUIRED MODULE)
@@ -52,15 +49,26 @@ else()
 	set(CMAKE_REMOVE_COMMAND rm)
 endif()
 
+# Lua include directory
+set(LUPA_BUILD_ARGS "--lua-inc-dir" "${LUA_INCLUDE_DIR}")
+
+foreach(LUA_LIBRARY ${LUA_LIBRARIES})
+	# Lua library directory
+	get_filename_component(LUA_LIBRARY_DIR ${LUA_LIBRARY} DIRECTORY)
+	list(APPEND LUPA_BUILD_ARGS "--lua-lib-dir" "${LUA_LIBRARY_DIR}")
+
+	# Lua library name
+	get_filename_component(LUA_LIBRARY_NAME ${LUA_LIBRARY} NAME_WLE)
+	string(REGEX REPLACE "^lib" "" LUA_LIBRARY_NAME "${LUA_LIBRARY_NAME}")
+	list(APPEND LUPA_BUILD_ARGS "--lua-lib" "${LUA_LIBRARY_NAME}")
+endforeach()
+
 # Build lupa
 add_custom_command(
 	OUTPUT "${LUPA_BINARY_FILE}"
 	COMMAND "${CMAKE_COMMAND}" -E "${CMAKE_REMOVE_COMMAND}" -f ${LUPA_GENERATED_FILES} "${LUPA_BINARY_FILE}"
-	COMMAND "${GIT_EXECUTABLE}" -C "${LUA_PROJECT_DIR}" fetch
-	COMMAND "${GIT_EXECUTABLE}" -C "${LUA_PROJECT_DIR}" checkout "v${LUA_VERSION_STRING}"
 	COMMAND "${Python_EXECUTABLE}" -m pip install -r requirements.txt
-	COMMAND "${Python_EXECUTABLE}" setup.py build --use-bundle
-	COMMAND "${Python_EXECUTABLE}" setup.py develop --user
+	COMMAND "${Python_EXECUTABLE}" setup.py build ${LUPA_BUILD_ARGS} develop --user
 	WORKING_DIRECTORY "${LUPA_PROJECT_DIR}"
 	DEPENDS "${LUPA_SOURCE_FILES}"
 	COMMENT "Setting up lupa in development mode"

@@ -5,7 +5,7 @@ For this purpose, the Lupa source code had to be slightly modified in the fork t
 
 ## Dependencies
 
-* [CMake] >= 3.12
+* [CMake] >= 3.14.7
   * program
 * [Lua] >= 5.1
   * program

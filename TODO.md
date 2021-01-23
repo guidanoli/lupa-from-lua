@@ -32,10 +32,10 @@
 * Test all of the entries provided in the python table :ok:
 * Unload Python library when python module goes out of scope in Lua :ok:
 * Study and implement conversion of integers for Lua >= 5.3 :ok:
+* Stop using bundled Lua and pass library and include paths to lupa/setup.py directly :ok:
 * Study the implementation of garbage collection and investigate possible memory leaks
 * Study the implementation of named parameters using decorators
 * Study alternative implementations of named parameters
-* Stop using bundled Lua and pass library and include paths to lupa/setup.py directly
 
 [(1)]: https://mail.python.org/pipermail/new-bugs-announce/2008-November/003322.html
 [(2)]: https://github.com/bastibe/lunatic-python/blob/master/src/pythoninlua.c#L641
