@@ -22,7 +22,7 @@ Example with Lua 5.4.2.
 curl -R -O http://www.lua.org/ftp/lua-5.4.2.tar.gz
 tar zxf lua-5.4.2.tar.gz
 cd lua-5.4.2
-sed 's/\(MYCFLAGS=.*\)/\1 -fPIC/' -i src/Makefile
+sed 's/\(^MYCFLAGS.*\)/\1 -fPIC/' -i src/Makefile
 sudo make all install
 ```
 
