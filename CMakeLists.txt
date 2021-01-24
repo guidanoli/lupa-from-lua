@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.14.7)
+cmake_minimum_required(VERSION 3.14)
 project(lupafromlua)
 
 # Find Lua static library
@@ -33,7 +33,6 @@ endif()
 set(LUPA_PROJECT_DIR "${PROJECT_SOURCE_DIR}/lupa")
 set(LUPA_SOURCE_DIR "${LUPA_PROJECT_DIR}/lupa")
 set(LUPA_BINARY_FILE "${LUPA_SOURCE_DIR}/_lupa${PYTHON_EXT_SUFFIX}")
-set(LUA_PROJECT_DIR "${LUPA_PROJECT_DIR}/third-party/lua")
 
 file(GLOB_RECURSE LUPA_SOURCE_FILES
 	"${LUPA_SOURCE_DIR}/*.pyx"

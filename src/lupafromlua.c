@@ -61,8 +61,16 @@ DLL_EXPORT int luaopen_lupafromlua(lua_State *L)
 #	endif
 #endif
 
-	/* Create LUPAFROMLUA table */
-	luaL_getsubtable(L, LUA_REGISTRYINDEX, LUPAFROMLUA);
+	/* Get LUPAFROMLUA table from register */
+	lua_getfield(L, LUA_REGISTRYINDEX, LUPAFROMLUA);
+
+	/* If table doesn't exist yet */
+	if (!lua_istable(L, -1)) {
+		lua_pop(L, 1); /* remove previous result */
+		lua_newtable(L);
+		lua_pushvalue(L, -1); /* copy to be left at the top */
+		lua_setfield(L, LUA_REGISTRYINDEX, LUPAFROMLUA); /* assign new table to field */
+	}
 
 	/* Create metatable for LUPAFROMLUA */
 	lua_createtable(L, 0, 1);

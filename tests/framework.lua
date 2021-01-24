@@ -15,6 +15,32 @@ local Framework = {
 	}
 }
 
+-- Similar to regular 'pairs' function
+-- but sorted by table keys
+-- Arguments:
+-- t = (table to be iterated) [table]
+-- f = (sorting function) [function]
+-- Return:
+-- * iterator that returns key and value
+function Framework:SortedPairs(t, f)
+	local a = {}
+	for n in pairs(t) do table.insert(a, n) end
+	table.sort(a, f)
+	local i = 0 -- iterator variable
+	local iter = function() -- iterator function
+		i = i + 1
+		if a[i] == nil then return nil
+		else return a[i], t[a[i]]
+		end
+	end
+	return iter
+end
+
+-- Print message with colored tag
+-- Arguments:
+-- tag = (message tag) [string]
+-- tagcolor = (message tag color) [string]
+-- message = (actual message) [string]
 function Framework:Print(tag, tagcolor, message)
 	local tagcolorcode = self.colors[tagcolor] or 0
 	print("[\27[" .. tagcolorcode .. "m " .. tag .. "\27[0m ] " .. message)
@@ -38,7 +64,7 @@ function Framework:RunTestbench(tb)
 	local passed = 0
 	local failed = 0
 
-	for testname, testfunc in pairs(tb) do
+	for testname, testfunc in self:SortedPairs(tb) do
 		if testname:find("^Test") ~= nil then
 			local ok, errmsg = pcall(testfunc, tb)
 			if ok then
