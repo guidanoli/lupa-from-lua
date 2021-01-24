@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.14)
 project(lupafromlua)
 
+set(LUPAFROMLUA_PROJECT_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+
 # Find Lua static library
 find_package(Lua REQUIRED MODULE)
 
@@ -20,7 +22,7 @@ endif()
 
 # Get Python extension module suffix
 execute_process(
-	COMMAND "${Python_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/src/ext.py"
+	COMMAND "${Python_EXECUTABLE}" "${LUPAFROMLUA_PROJECT_DIR}/src/ext.py"
 	OUTPUT_VARIABLE PYTHON_EXT_SUFFIX
 	RESULT_VARIABLE PYTHON_EXT_SUFFIX_NOT_FOUND) 
 
@@ -28,7 +30,7 @@ if(PYTHON_EXT_SUFFIX_NOT_FOUND)
 	message(FATAL_ERROR "Could not obtain Python extension module suffix")
 endif()
 
-set(LUPA_PROJECT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lupa")
+set(LUPA_PROJECT_DIR "${LUPAFROMLUA_PROJECT_DIR}/lupa")
 set(LUPA_SOURCE_DIR "${LUPA_PROJECT_DIR}/lupa")
 set(LUPA_BINARY_FILE "${LUPA_SOURCE_DIR}/_lupa${PYTHON_EXT_SUFFIX}")
 

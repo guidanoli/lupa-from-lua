@@ -24,4 +24,4 @@ endif()
 add_custom_command(TARGET lupafromlua POST_BUILD
 	COMMAND "${CMAKE_COMMAND}" -E copy
 		"$<TARGET_FILE:lupafromlua>"
-		"${PROJECT_SOURCE_DIR}")
+		"${LUPAFROMLUA_PROJECT_DIR}")
