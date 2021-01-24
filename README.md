@@ -19,11 +19,11 @@ For this purpose, the Lupa source code had to be slightly modified in the fork t
 Example with Lua 5.4.2.
 
 ```sh
-$ curl -R -O http://www.lua.org/ftp/lua-5.4.2.tar.gz
-$ tar zxf lua-5.4.2.tar.gz
-$ cd lua-5.4.2
-$ sed 's/\(MYCFLAGS=.*\)/\1 -fPIC/' -i src/Makefile
-$ sudo make all install
+curl -R -O http://www.lua.org/ftp/lua-5.4.2.tar.gz
+tar zxf lua-5.4.2.tar.gz
+cd lua-5.4.2
+sed 's/\(MYCFLAGS=.*\)/\1 -fPIC/' -i src/Makefile
+sudo make all install
 ```
 
 ### Building the Python library
@@ -31,12 +31,12 @@ $ sudo make all install
 Example with Python 3.8.4.
 
 ```sh
-$ wget https://www.python.org/ftp/python/3.8.4/Python-3.8.4.tgz
-$ tar xvf Python-3.8.4.tgz
-$ cd Python-3.8.4
-$ ./configure --enable-shared
-$ make -j $(nproc)
-$ sudo make altinstall
+wget https://www.python.org/ftp/python/3.8.4/Python-3.8.4.tgz
+tar xvf Python-3.8.4.tgz
+cd Python-3.8.4
+./configure --enable-shared
+make -j $(nproc)
+sudo make altinstall
 ```
 
 Example with Python 3.9 by using [pyenv].
