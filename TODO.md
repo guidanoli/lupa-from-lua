@@ -1,13 +1,19 @@
 # To do list
 
-* Write a CMakeLists.txt that finds Lua :ok:
-* Add a library to CMakeLists.txt that links to Lua :ok:
-* Write a Lua library in C :ok:
-* Make CMake find the Python libraries :ok:
-* Make the library link against Python :ok:
-* In the library, initialize and finalize Python :ok:
-* In the library, print Hello World from Python :ok:
-* In the library, import Lupa from Python :ok:
+* Study the implementation of garbage collection and investigate possible memory leaks
+* Study the implementation of named parameters using decorators
+* Study alternative implementations of named parameters
+
+# Done
+
+* Write a CMakeLists.txt that finds Lua
+* Add a library to CMakeLists.txt that links to Lua
+* Write a Lua library in C
+* Make CMake find the Python libraries
+* Make the library link against Python
+* In the library, initialize and finalize Python
+* In the library, print Hello World from Python
+* In the library, import Lupa from Python
 
   * In this step, I stumbled upon an issue which prevents Python from finding the
     Lupa module through the C API in a shared module. This has been addressed before [(1)] [(4)] [(5)].
@@ -17,25 +23,22 @@
     The flags passed to `dlopen` are `RTLD_NOW` (resolve all symbols before `dlopen` returns) and `RTLD_GLOBAL`
     (symbols are available to dynamic libraries subsequently loaded).
 
-* Have the Lupa project locally :ok:
-* Setup the Lupa library locally :ok:
-* Import Lupa locally from Python :ok:
-* Create a LuaRuntime object from Python :ok:
-* Modify Lupa so that LuaRuntime can accept an already existent Lua state :ok:
-* In the library, create a LuaRuntime with the already existent Lua state :ok:
-* Make the library return a table with the "python" table :ok:
-* In the library, attribute this LuaRuntime to a variable "lua" in Python :ok:
-* Register a different function for eval in the Lua table for interacting with Python :ok:
-* Implement a function for eval that evaluates a string in the global scope of the main module :ok:
-* Implement an adaptation for exec that executes a string in the global scope of the main module :ok:
-* Create a structure for testing Lupa from the Lua side :ok:
-* Test all of the entries provided in the python table :ok:
-* Unload Python library when python module goes out of scope in Lua :ok:
-* Study and implement conversion of integers for Lua >= 5.3 :ok:
-* Stop using bundled Lua and pass library and include paths to lupa/setup.py directly :ok:
-* Study the implementation of garbage collection and investigate possible memory leaks
-* Study the implementation of named parameters using decorators
-* Study alternative implementations of named parameters
+* Have the Lupa project locally
+* Setup the Lupa library locally
+* Import Lupa locally from Python
+* Create a LuaRuntime object from Python
+* Modify Lupa so that LuaRuntime can accept an already existent Lua state
+* In the library, create a LuaRuntime with the already existent Lua state
+* Make the library return a table with the "python" table
+* In the library, attribute this LuaRuntime to a variable "lua" in Python
+* Register a different function for eval in the Lua table for interacting with Python
+* Implement a function for eval that evaluates a string in the global scope of the main module
+* Implement an adaptation for exec that executes a string in the global scope of the main module
+* Create a structure for testing Lupa from the Lua side
+* Test all of the entries provided in the python table
+* Unload Python library when python module goes out of scope in Lua
+* Study and implement conversion of integers for Lua >= 5.3
+* Stop using bundled Lua and pass library and include paths to lupa/setup.py directly
 
 [(1)]: https://mail.python.org/pipermail/new-bugs-announce/2008-November/003322.html
 [(2)]: https://github.com/bastibe/lunatic-python/blob/master/src/pythoninlua.c#L641
