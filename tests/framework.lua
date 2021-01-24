@@ -19,7 +19,8 @@ local Framework = {
 -- but sorted by table keys
 -- Arguments:
 -- t = (table to be iterated) [table]
--- f = (sorting function) [function]
+-- f = (sorting function) [function, nil]
+--     default: '<' operator
 -- Return:
 -- * iterator that returns key and value
 function Framework:SortedPairs(t, f)

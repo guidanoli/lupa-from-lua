@@ -20,17 +20,15 @@ endif()
 
 # Get Python extension module suffix
 execute_process(
-	COMMAND "${Python_EXECUTABLE}" -c "import sysconfig; print(sysconfig.get_config_var('EXT_SUFFIX'))"
+	COMMAND "${Python_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/src/ext.py"
 	OUTPUT_VARIABLE PYTHON_EXT_SUFFIX
 	RESULT_VARIABLE PYTHON_EXT_SUFFIX_NOT_FOUND) 
-
-string(REGEX REPLACE "\n$" "" PYTHON_EXT_SUFFIX "${PYTHON_EXT_SUFFIX}")
 
 if(PYTHON_EXT_SUFFIX_NOT_FOUND)
 	message(FATAL_ERROR "Could not obtain Python extension module suffix")
 endif()
 
-set(LUPA_PROJECT_DIR "${PROJECT_SOURCE_DIR}/lupa")
+set(LUPA_PROJECT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/lupa")
 set(LUPA_SOURCE_DIR "${LUPA_PROJECT_DIR}/lupa")
 set(LUPA_BINARY_FILE "${LUPA_SOURCE_DIR}/_lupa${PYTHON_EXT_SUFFIX}")
 
@@ -54,7 +52,10 @@ set(LUPA_BUILD_ARGS "--lua-inc-dir" "${LUA_INCLUDE_DIR}")
 foreach(LUA_LIBRARY ${LUA_LIBRARIES})
 	# Lua library directory
 	get_filename_component(LUA_LIBRARY_DIR ${LUA_LIBRARY} DIRECTORY)
-	list(APPEND LUPA_BUILD_ARGS "--lua-lib-dir" "${LUA_LIBRARY_DIR}")
+
+	if(NOT "${LUA_LIBRARY_DIR}" STREQUAL "")
+		list(APPEND LUPA_BUILD_ARGS "--lua-lib-dir" "${LUA_LIBRARY_DIR}")
+	endif()
 
 	# Lua library name
 	get_filename_component(LUA_LIBRARY_NAME ${LUA_LIBRARY} NAME_WLE)
