@@ -29,9 +29,9 @@ jobs:
       - name: Cache Python
         id: cache-python
         uses: actions/cache@v2
-          with:
-            path: $(pyenv root)/versions/${{ matrix.pythonVersion }}
-            key: ${{ runner.os }}-python-${{ matrix.pythonVersion }}
+        with:
+          path: $(pyenv root)/versions/${{ matrix.pythonVersion }}
+          key: ${{ runner.os }}-python-${{ matrix.pythonVersion }}
       - name: Setup Python
         if: steps.cache-python.outputs.cache-hit != 'true'
         run: |
