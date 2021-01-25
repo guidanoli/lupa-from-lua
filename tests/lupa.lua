@@ -4,6 +4,16 @@
 
 local python = require "lupafromlua"
 
+if not table.pack then
+	table.pack = function(...)
+		return {n=select('#',...); ...}
+	end
+end
+
+if not table.unpack then
+	table.unpack = unpack
+end
+
 python.equal = python.eval("lambda x, y: x == y")
 
 python.wrap = python.eval("lambda f: lambda *args: f(*args)")
