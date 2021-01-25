@@ -16,11 +16,8 @@ jobs:
         env:
           luaVersion: ${{ matrix.luaVersion }}
         run: |
-          echo $luaVersion
-          echo ${luaVersion}
-          echo ${{ env.luaVersion }}
-          curl -R -O http://www.lua.org/ftp/lua-$luaVersion.tar.gz
-          tar zxf lua-$luaVersion.tar.gz
-          cd lua-$luaVersion
+          curl -R -O http://www.lua.org/ftp/lua-${{ env.luaVersion }}.tar.gz
+          tar zxf lua-${{ env.luaVersion }}.tar.gz
+          cd lua-${{ env.luaVersion}}
           sed 's/\(^MYCFLAGS.*\)/\1 -fPIC/' -i src/Makefile
           sudo make all install test
