@@ -13,13 +13,24 @@ jobs:
     
     steps:
       - uses: actions/checkout@v2
-      - name: Setup Lua
+      - name: Cache Lua
+        id: cache-lua
+        uses: actions/cache@v2
+        with:
+          path: lua-${{ matrix.luaVersion }}
+          key: ${{ runner.os }}-lua-${{ matrix.luaVersion }}
+      - name: Compile Lua
+        if: steps.cache-lua.outputs.cache-hit != 'true'
         run: |
           curl -R -O http://www.lua.org/ftp/lua-${{ matrix.luaVersion }}.tar.gz
           tar zxf lua-${{ matrix.luaVersion }}.tar.gz
-          cd lua-${{ matrix.luaVersion}}
+          cd lua-${{ matrix.luaVersion }}
           sed 's/\(^MYCFLAGS.*\)/\1 -fPIC/' -i src/Makefile
-          sudo make linux install
+          make linux
+      - name: Install Lua
+        run: |
+          cd lua-${{ matrix.luaVersion }}
+          sudo make install
       - name: Test Lua
         run: lua -v
       - name: Setup Pyenv
@@ -32,7 +43,7 @@ jobs:
         with:
           path: $(pyenv root)/versions/${{ matrix.pythonVersion }}
           key: ${{ runner.os }}-python-${{ matrix.pythonVersion }}
-      - name: Setup Python
+      - name: Compile and install Python
         if: steps.cache-python.outputs.cache-hit != 'true'
         run: |
           eval "$(pyenv init -)"
@@ -40,7 +51,7 @@ jobs:
           pyenv global ${{ matrix.pythonVersion }}
       - name: Test Python
         run: python --version
-      - name: Setup CMake
+      - name: Install CMake
         run: sudo apt install cmake -y
       - name: Test CMake
         run: cmake --version
