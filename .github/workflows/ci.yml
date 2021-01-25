@@ -23,7 +23,8 @@ jobs:
           sed 's/\(^MYCFLAGS.*\)/\1 -fPIC/' -i src/Makefile
           sudo make linux install test
       - name: Setup Python
-        uses: gabrielfalcao/pyenv-action@v5
-        with:
-          default: ${{ matrix.pythonVersion }}
-          command: pip install -U pip
+        run: |
+          export PATH=$PATH:test
+      - name: Export test
+        run: | 
+          echo $PATH
