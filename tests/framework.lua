@@ -40,7 +40,8 @@ end
 -- Print message with colored tag
 -- Arguments:
 -- tag = (message tag) [string]
--- tagcolor = (message tag color) [string]
+-- tagcolor = (message tag color) [string, nil]
+--            default: no color
 -- message = (actual message) [string]
 function Framework:Print(tag, tagcolor, message)
 	local tagcolorcode = self.colors[tagcolor] or 0
