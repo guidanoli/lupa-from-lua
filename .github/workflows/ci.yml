@@ -22,12 +22,13 @@ jobs:
           cd lua-${{ env.luaVersion}}
           sed 's/\(^MYCFLAGS.*\)/\1 -fPIC/' -i src/Makefile
           sudo make linux install test
+      - name: Setup Pyenv
+        run: |
+          git clone https://github.com/pyenv/pyenv.git ~/.pyenv
+          echo "${HOME}/.pyenv/bin" >> $GITHUB_PATH
       - name: Setup Python
         env:
           pythonVersion: ${{ matrix.pythonVersion }}
         run: |
-          git clone https://github.com/pyenv/pyenv.git ~/.pyenv
-          export PYENV_ROOT=$HOME/.pyenv
-          export PATH=$PYENV_ROOT/bin:$PATH
           eval "$(pyenv init -)"
           CONFIGURE_OPTS=--enable-shared pyenv install ${{ env.pythonVersion }}
