@@ -3,7 +3,6 @@
 * Study the implementation of garbage collection and investigate possible memory leaks
 * Study the implementation of named parameters using decorators
 * Study alternative implementations of named parameters
-* Configure continuous integration service
 
 # Done
 
@@ -40,6 +39,7 @@
 * Unload Python library when python module goes out of scope in Lua
 * Study and implement conversion of integers for Lua >= 5.3
 * Stop using bundled Lua and pass library and include paths to lupa/setup.py directly
+* Configure continuous integration service
 
 [(1)]: https://mail.python.org/pipermail/new-bugs-announce/2008-November/003322.html
 [(2)]: https://github.com/bastibe/lunatic-python/blob/master/src/pythoninlua.c#L641
