@@ -85,6 +85,7 @@ jobs:
           key: ${{ runner.os }}-cmake-${{ matrix.cmake_version }}
 
       - name: Compile CMake
+        if: steps.cache-cmake.outputs.cache-hit != 'true'
         run: |
           cd .cache
           wget https://github.com/Kitware/CMake/releases/download/v${{ matrix.cmake_version }}/cmake-${{ matrix.cmake_version }}.tar.gz
