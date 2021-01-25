@@ -42,10 +42,19 @@ jobs:
       - name: Test Lua
         run: lua -v
 
-      - name: Setup Pyenv
-        run: |
-          git clone https://github.com/pyenv/pyenv.git ~/.pyenv
-          echo "${HOME}/.pyenv/bin" >> $GITHUB_PATH
+      - name: Cache Pyenv
+        id: cache-pyenv
+        uses: actions/cache@v2
+        with:
+          path: pyenv
+          key: ${{ runner.os }}-pyenv
+
+      - name: Clone Pyenv
+        if: steps.cache-pyenv.outputs.cache-hit != 'true'
+        run: git clone https://github.com/pyenv/pyenv.git
+        
+      - name: Install Pyenv
+        run: echo "$GITHUB_WORKSPACE/pyenv/bin" >> "$GITHUB_PATH"
 
       - name: Cache Python
         id: cache-python
