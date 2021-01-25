@@ -13,7 +13,12 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: setup-lua
+        env:
+          luaVersion: ${{ matrix.luaVersion }}
         run: |
+          echo $luaVersion
+          echo ${luaVersion}
+          echo ${{ env.luaVersion }}
           curl -R -O http://www.lua.org/ftp/lua-$luaVersion.tar.gz
           tar zxf lua-$luaVersion.tar.gz
           cd lua-$luaVersion
