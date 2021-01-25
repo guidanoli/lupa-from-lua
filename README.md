@@ -16,14 +16,14 @@ For this purpose, the Lupa source code had to be slightly modified in the fork t
 
 ### Building the Lua library
 
-Example with Lua 5.4.2.
+Example with Lua 5.4.2, where `xxx` is your platform.
 
 ```sh
 curl -R -O http://www.lua.org/ftp/lua-5.4.2.tar.gz
 tar zxf lua-5.4.2.tar.gz
 cd lua-5.4.2
-sed 's/\(^MYCFLAGS.*\)/\1 -fPIC/' -i src/Makefile
-sudo make all install
+sed 's/\(^CFLAGS.*\)/\1 -fPIC/' -i src/Makefile
+sudo make xxx install
 ```
 
 ### Building the Python library
