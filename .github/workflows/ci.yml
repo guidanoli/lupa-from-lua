@@ -1,4 +1,4 @@
-name: ci
+name: Continuous Integration
 
 on: [push]
 
@@ -7,13 +7,13 @@ jobs:
     strategy:
       matrix:
         luaVersion: ["5.1.5", "5.2.4", "5.3.6", "5.4.2"]
-        pythonVersion: ["2.7.18", "3.5.10", "3.6.12", "3.7.9", "3.8.7", "3.9.1"]
+        pythonVersion: ["2.7-dev", "3.5-dev", "3.6-dev", "3.7-dev", "3.8-dev", "3.9-dev"]
     
     runs-on: ubuntu-latest
     
     steps:
       - uses: actions/checkout@v2
-      - name: setup-lua
+      - name: Setup Lua
         env:
           luaVersion: ${{ matrix.luaVersion }}
         run: |
@@ -22,11 +22,8 @@ jobs:
           cd lua-${{ env.luaVersion}}
           sed 's/\(^MYCFLAGS.*\)/\1 -fPIC/' -i src/Makefile
           sudo make linux install test
-      - name: setup-python
+      - name: Setup Python
         uses: gabrielfalcao/pyenv-action@v5
-        env:
-          pythonVersion: ${{ matrix.pythonVersion }}
-        run: |
-          CONFIGURE_OPTS=--enable-shared pyenv install ${{ env.pythonVersion }}
-          pyenv global ${{ env.pythonVersion }}
-          pip install -U pip
+        with:
+          default: ${{ matrix.pythonVersion }}
+          command: pip install -U pip
