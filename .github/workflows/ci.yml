@@ -46,19 +46,10 @@ jobs:
       - name: Test Lua
         run: lua -v
 
-      - name: Cache Pyenv
-        id: cache-pyenv
-        uses: actions/cache@v2
-        with:
-          path: .cache/pyenv-${{ matrix.pyenv_version }}
-          key: ${{ runner.os }}-pyenv-${{ matrix.pyenv_version }}
-
-      - name: Clone Pyenv
-        if: steps.cache-pyenv.outputs.cache-hit != 'true'
-        run: git clone -b ${{ matrix.pyenv_version }} https://github.com/pyenv/pyenv.git .cache/pyenv-${{ matrix.pyenv_version }}
-        
       - name: Install Pyenv
-        run: echo "$GITHUB_WORKSPACE/.cache/pyenv-${{ matrix.pyenv_version }}/bin" >> "$GITHUB_PATH"
+        run: |
+          git clone -b ${{ matrix.pyenv_version }} https://github.com/pyenv/pyenv.git .cache/pyenv-${{ matrix.pyenv_version }}
+          echo "$GITHUB_WORKSPACE/.cache/pyenv-${{ matrix.pyenv_version }}/bin" >> "$GITHUB_PATH"
 
       - name: Cache Python
         id: cache-python
