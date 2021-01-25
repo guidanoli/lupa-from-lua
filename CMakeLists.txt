@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.18)
 project(lupafromlua)
 
 set(LUPAFROMLUA_PROJECT_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
@@ -42,12 +42,6 @@ file(GLOB_RECURSE LUPA_SOURCE_FILES
 file(GLOB_RECURSE LUPA_GENERATED_FILES
 	"${LUPA_SOURCE_DIR}/*.c")
 
-if("${CMAKE_VERSION}" VERSION_LESS "3.17.0")
-	set(CMAKE_REMOVE_COMMAND remove)
-else()
-	set(CMAKE_REMOVE_COMMAND rm)
-endif()
-
 # Lua include directory
 set(LUPA_BUILD_ARGS "--lua-inc-dir" "${LUA_INCLUDE_DIR}")
 
@@ -68,7 +62,7 @@ endforeach()
 # Build lupa
 add_custom_command(
 	OUTPUT "${LUPA_BINARY_FILE}"
-	COMMAND "${CMAKE_COMMAND}" -E "${CMAKE_REMOVE_COMMAND}" -f ${LUPA_GENERATED_FILES} "${LUPA_BINARY_FILE}"
+	COMMAND "${CMAKE_COMMAND}" -E rm -f ${LUPA_GENERATED_FILES} "${LUPA_BINARY_FILE}"
 	COMMAND "${Python_EXECUTABLE}" -m pip install -r requirements.txt
 	COMMAND "${Python_EXECUTABLE}" setup.py build ${LUPA_BUILD_ARGS} develop --user
 	WORKING_DIRECTORY "${LUPA_PROJECT_DIR}"

@@ -9,7 +9,7 @@ jobs:
         lua_version: ["5.1.5", "5.2.4", "5.3.6", "5.4.2"]
         python_version: ["2.7-dev", "3.5-dev", "3.6-dev", "3.7-dev", "3.8-dev", "3.9-dev"]
         pyenv_version: ["v1.2.22"]
-        cmake_version: ["3.14.7"]
+        cmake_version: ["3.18.5"]
     
     runs-on: ubuntu-latest
     
