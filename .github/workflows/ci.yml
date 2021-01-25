@@ -14,26 +14,22 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Setup Lua
-        env:
-          luaVersion: ${{ matrix.luaVersion }}
         run: |
-          curl -R -O http://www.lua.org/ftp/lua-${{ env.luaVersion }}.tar.gz
-          tar zxf lua-${{ env.luaVersion }}.tar.gz
-          cd lua-${{ env.luaVersion}}
+          curl -R -O http://www.lua.org/ftp/lua-${{ matrix.luaVersion }}.tar.gz
+          tar zxf lua-${{ matrix.luaVersion }}.tar.gz
+          cd lua-${{ matrix.luaVersion}}
           sed 's/\(^MYCFLAGS.*\)/\1 -fPIC/' -i src/Makefile
           sudo make linux install
       - name: Test Lua
-        run: lua -v
+        run: lua -v | grep -- ${{ matrix.luaVersion }}
       - name: Setup Pyenv
         run: |
           git clone https://github.com/pyenv/pyenv.git ~/.pyenv
           echo "${HOME}/.pyenv/bin" >> $GITHUB_PATH
       - name: Setup Python
-        env:
-          pythonVersion: ${{ matrix.pythonVersion }}
         run: |
           eval "$(pyenv init -)"
-          CONFIGURE_OPTS=--enable-shared pyenv install ${{ env.pythonVersion }}
-          pyenv global ${{ env.pythonVersion }}
+          CONFIGURE_OPTS=--enable-shared pyenv install ${{ matrix.pythonVersion }}
+          pyenv global ${{ matrix.pythonVersion }}
       - name: Test Python
-        run: python --version
+        run: python -V | grep -- "$(echo ${{ matrix.pythonVersion }} | tr -cd [0-9.\n])"
