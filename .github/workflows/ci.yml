@@ -87,7 +87,7 @@ jobs:
       - name: Compile CMake
         run: |
           cd .cache
-          wget https://github.com/Kitware/CMake/releases/download/v${{ matrix.cmake_version }}cmake-${{ matrix.cmake_version }}.tar.gz
+          wget https://github.com/Kitware/CMake/releases/download/v${{ matrix.cmake_version }}/cmake-${{ matrix.cmake_version }}.tar.gz
           tar -zxvf cmake-${{ matrix.cmake_version }}.tar.gz
           cd cmake-${{ matrix.cmake_version }}
           ./bootstrap
