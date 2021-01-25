@@ -26,7 +26,14 @@ jobs:
         run: |
           git clone https://github.com/pyenv/pyenv.git ~/.pyenv
           echo "${HOME}/.pyenv/bin" >> $GITHUB_PATH
+      - name: Cache Python
+        id: cache-python
+        uses: actions/cache@v2
+          with:
+            path: $(pyenv root)/versions/${{ matrix.pythonVersion }}
+            key: ${{ runner.os }}-python-${{ matrix.pythonVersion }}
       - name: Setup Python
+        if: steps.cache-python.outputs.cache-hit != 'true'
         run: |
           eval "$(pyenv init -)"
           CONFIGURE_OPTS=--enable-shared pyenv install ${{ matrix.pythonVersion }}
