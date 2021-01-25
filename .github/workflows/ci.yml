@@ -12,9 +12,11 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - uses: actions/checkout@v2
-        with:
-          submodules: recursive
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Checkout recursively
+        run: git submodule update --init --recursive
 
       - name: Cache Lua
         id: cache-lua
