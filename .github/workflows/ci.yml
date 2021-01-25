@@ -13,12 +13,16 @@ jobs:
     
     steps:
       - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
       - name: Cache Lua
         id: cache-lua
         uses: actions/cache@v2
         with:
           path: lua-${{ matrix.luaVersion }}
           key: ${{ runner.os }}-lua-${{ matrix.luaVersion }}-v2
+
       - name: Compile Lua
         if: steps.cache-lua.outputs.cache-hit != 'true'
         run: |
@@ -27,31 +31,48 @@ jobs:
           cd lua-${{ matrix.luaVersion }}
           sed 's/\(^CFLAGS.*\)/\1 -fPIC/' -i src/Makefile
           make linux
+
       - name: Install Lua
         run: |
           cd lua-${{ matrix.luaVersion }}
           sudo make install
+
       - name: Test Lua
         run: lua -v
+
       - name: Setup Pyenv
         run: |
           git clone https://github.com/pyenv/pyenv.git ~/.pyenv
           echo "${HOME}/.pyenv/bin" >> $GITHUB_PATH
+
       - name: Cache Python
         id: cache-python
         uses: actions/cache@v2
         with:
           path: $(pyenv root)/versions/${{ matrix.pythonVersion }}
           key: ${{ runner.os }}-python-${{ matrix.pythonVersion }}
+
       - name: Compile and install Python
         if: steps.cache-python.outputs.cache-hit != 'true'
         run: |
           eval "$(pyenv init -)"
           CONFIGURE_OPTS=--enable-shared pyenv install ${{ matrix.pythonVersion }}
           pyenv global ${{ matrix.pythonVersion }}
+
       - name: Test Python
         run: python --version
+
       - name: Install CMake
         run: sudo apt install cmake -y
+
       - name: Test CMake
         run: cmake --version
+
+      - name: Configure build environment
+        run: cmake -B build
+
+      - name: Build Lupa and Lupafromlua
+        run: cmake --build build
+
+      - name: Test Lupafromlua
+        run: lua tests/testbench.lua
