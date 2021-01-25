@@ -18,16 +18,20 @@ jobs:
       - name: Checkout recursively
         run: git submodule update --init --recursive
 
+      - name: Create cache folder
+        run: mkdir .cache
+
       - name: Cache Lua
         id: cache-lua
         uses: actions/cache@v2
         with:
-          path: lua-${{ matrix.luaVersion }}
+          path: .cache/lua-${{ matrix.luaVersion }}
           key: ${{ runner.os }}-lua-${{ matrix.luaVersion }}-v2
 
       - name: Compile Lua
         if: steps.cache-lua.outputs.cache-hit != 'true'
         run: |
+          cd .cache
           curl -R -O http://www.lua.org/ftp/lua-${{ matrix.luaVersion }}.tar.gz
           tar zxf lua-${{ matrix.luaVersion }}.tar.gz
           cd lua-${{ matrix.luaVersion }}
@@ -36,7 +40,7 @@ jobs:
 
       - name: Install Lua
         run: |
-          cd lua-${{ matrix.luaVersion }}
+          cd .cache/lua-${{ matrix.luaVersion }}
           sudo make install
 
       - name: Test Lua
@@ -46,15 +50,15 @@ jobs:
         id: cache-pyenv
         uses: actions/cache@v2
         with:
-          path: pyenv
+          path: .cache/pyenv
           key: ${{ runner.os }}-pyenv
 
       - name: Clone Pyenv
         if: steps.cache-pyenv.outputs.cache-hit != 'true'
-        run: git clone https://github.com/pyenv/pyenv.git
+        run: git clone https://github.com/pyenv/pyenv.git .cache/pyenv
         
       - name: Install Pyenv
-        run: echo "$GITHUB_WORKSPACE/pyenv/bin" >> "$GITHUB_PATH"
+        run: echo "$GITHUB_WORKSPACE/.cache/pyenv/bin" >> "$GITHUB_PATH"
 
       - name: Cache Python
         id: cache-python
