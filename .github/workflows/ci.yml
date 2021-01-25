@@ -20,4 +20,4 @@ jobs:
           tar zxf lua-${{ env.luaVersion }}.tar.gz
           cd lua-${{ env.luaVersion}}
           sed 's/\(^MYCFLAGS.*\)/\1 -fPIC/' -i src/Makefile
-          sudo make linux install test
+          sudo make linux install test -j $(nproc)
