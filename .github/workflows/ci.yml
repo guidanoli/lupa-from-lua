@@ -21,7 +21,7 @@ jobs:
           sed 's/\(^MYCFLAGS.*\)/\1 -fPIC/' -i src/Makefile
           sudo make linux install
       - name: Test Lua
-        run: lua -v | grep -- ${{ matrix.luaVersion }}
+        run: lua -v
       - name: Setup Pyenv
         run: |
           git clone https://github.com/pyenv/pyenv.git ~/.pyenv
@@ -32,4 +32,4 @@ jobs:
           CONFIGURE_OPTS=--enable-shared pyenv install ${{ matrix.pythonVersion }}
           pyenv global ${{ matrix.pythonVersion }}
       - name: Test Python
-        run: python -V | grep -- "$(echo ${{ matrix.pythonVersion }} | tr -cd [0-9.\n])"
+        run: python -V
