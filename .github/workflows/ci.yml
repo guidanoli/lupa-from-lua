@@ -21,7 +21,9 @@ jobs:
           tar zxf lua-${{ env.luaVersion }}.tar.gz
           cd lua-${{ env.luaVersion}}
           sed 's/\(^MYCFLAGS.*\)/\1 -fPIC/' -i src/Makefile
-          sudo make linux install test
+          sudo make linux install
+      - name: Test Lua
+        run: lua -v
       - name: Setup Pyenv
         run: |
           git clone https://github.com/pyenv/pyenv.git ~/.pyenv
@@ -32,3 +34,6 @@ jobs:
         run: |
           eval "$(pyenv init -)"
           CONFIGURE_OPTS=--enable-shared pyenv install ${{ env.pythonVersion }}
+          pyenv global ${{ env.pythonVersion }}
+      - name: Test Python
+        run: python --version
