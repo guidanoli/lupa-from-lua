@@ -14,6 +14,19 @@ For this purpose, the Lupa source code had to be slightly modified in the fork t
   * program
   * [dynamic library](#building-the-python-library)
 
+### Building CMake
+
+Example with CMake 3.18.5
+
+```
+wget https://github.com/Kitware/CMake/releases/download/v3.18.5/cmake-3.18.5.tar.gz
+tar -zxvf cmake-3.18.5.tar.gz
+cd cmake-3.18.5
+./bootstrap
+make
+sudo make install
+```
+
 ### Building the Lua library
 
 Example with Lua 5.4.2, where `xxx` is your platform.
