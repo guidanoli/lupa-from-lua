@@ -94,4 +94,29 @@ function Framework:RunTestbench(tb)
 	}
 end
 
+function Framework:TestTypeEq(a, b)
+	ta, tb = type(a), type(b)
+	assert(ta == tb,
+		tostring(a) .. " and " .. tostring(b) ..
+		" have different type (" .. ta ..
+		" and " .. tb .. " respectively)")
+end
+
+function Framework:TestMathTypeEq(a, b)
+	if math.type then
+		ta, tb = math.type(a), math.type(b)
+		assert(ta == tb,
+			tostring(a) .. " and " .. tostring(b) ..
+			" have different mathematical types (" ..
+			ta .. " and " .. tb .. " respectively)")
+	end
+end
+
+function Framework:TestNumEq(a, b)
+	self:TestTypeEq(a, b)
+	self:TestMathTypeEq(a, b)
+	assert(a == b,
+		tostring(a) .. " != " .. tostring(b))
+end
+
 return Framework

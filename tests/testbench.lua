@@ -527,35 +527,46 @@ function Testbench:TestMultipleReturnValues()
 end
 
 function Testbench:TestIntegerFromLuaToPython()
+	local eqtype = python.eval('lambda a, b: type(a) is type(eval(b))')
+	local eqvalue = python.eval('lambda a, b: a == eval(b)')
+
 	local isint = python.eval('lambda n: type(n) is int')
 	local isfloat = python.eval('lambda n: type(n) is float')
 
 	assert(isint(1))
+	assert(eqtype(1, '1'))
+	assert(eqvalue(1, '1'))
+	assert(eqvalue(1.0, '1.0'))
+	assert(eqvalue(1.0, '1'))
+	assert(eqvalue(1, '1.0'))
+
 	assert(isfloat(1.2))
+	assert(eqtype(1.2, '1.2'))
+	assert(eqvalue(1.2, '1.2'))
 
 	if hasintegers then
 		-- Preserves underlying type
 		assert(isfloat(1.0))
+		assert(eqtype(1.0, '1.0'))
 	else
 		-- Merely checks for decimals
 		assert(isint(1.0))
+		assert(eqtype(1.0, '1'))
 	end
 end
 
 function Testbench:TestIntegerFromPythonToLua()
+	python.exec('import math')
+	
 	local one = python.eval('1')
 	local onef = python.eval('1.0')
-	local pi = python.eval('3.14')
-	
-	assert(one == 1)
-	assert(onef == 1.0)
-	assert(math.abs(pi - 3.14) < 1e-2)
 
-	if hasintegers then
-		assert(math.type(one) == 'integer')
-		assert(math.type(onef) == 'float')
-		assert(math.type(pi) == 'float')
-	end
+	local python_pi = python.eval('math.pi')
+	local lua_pi = math.pi
+	
+	framework:TestNumEq(one, 1)
+	framework:TestNumEq(onef, 1.0)
+	framework:TestNumEq(python_pi, lua_pi)
 end
 
 -----------------------------------------------------------
