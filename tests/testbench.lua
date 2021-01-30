@@ -540,6 +540,11 @@ function Testbench:TestNumberFromLuaToPython()
 	local isint = python.eval('lambda n: type(n) is int')
 	local isfloat = python.eval('lambda n: type(n) is float')
 
+	local roundtrip = function(num)
+		assert(eqtype(num, tostring(num)))
+		assert(eqvalue(num, tostring(num)))
+	end
+
 	assert(isint(1))
 	assert(eqtype(1, '1'))
 	assert(eqvalue(1, '1'))
@@ -559,13 +564,19 @@ function Testbench:TestNumberFromLuaToPython()
 	-- So we can't really compare Python and Lua nan's but we can use math.isnan from Python
 	assert(isnan(0/0))
 
-	assert(eqvalue(1/0, 'float("inf")'))
-	assert(eqvalue(-1/0, 'float("-inf")'))
+	assert(eqvalue(math.huge, 'float("inf")'))
+	assert(eqvalue(-math.huge, 'float("-inf")'))
 
 	if hasintegers then
 		-- If Lua supports integers, the subtype is preserved
 		assert(isfloat(1.0))
 		assert(eqtype(1.0, '1.0'))
+
+		assert(isint(math.maxinteger))
+		roundtrip(math.maxinteger)
+
+		assert(isint(math.mininteger))
+		roundtrip(math.mininteger)
 	else
 		-- If Lua doesn't support integers, the subtype is
 		-- infered by whether the number has a decimal part or not
