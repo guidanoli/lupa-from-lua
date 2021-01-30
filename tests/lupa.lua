@@ -53,4 +53,14 @@ python.dict = function(...)
 	return d
 end
 
+python.import = function(...)
+	local t = table.pack(...)
+	local i = 1
+	while i <= t.n do
+		local module = t[i]
+		python.exec("import " .. module)
+		i = i + 1
+	end
+end
+
 return python

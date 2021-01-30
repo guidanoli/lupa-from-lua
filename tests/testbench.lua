@@ -7,6 +7,12 @@ local framework = require "tests.framework"
 local python = require "tests.lupa"
 
 -----------------------------------------------------------
+-- Python imports
+-----------------------------------------------------------
+
+python.import "math"
+
+-----------------------------------------------------------
 -- Setup
 -----------------------------------------------------------
 
@@ -526,9 +532,10 @@ function Testbench:TestMultipleReturnValues()
 	
 end
 
-function Testbench:TestIntegerFromLuaToPython()
+function Testbench:TestNumberFromLuaToPython()
 	local eqtype = python.eval('lambda a, b: type(a) is type(eval(b))')
 	local eqvalue = python.eval('lambda a, b: a == eval(b)')
+	local isnan = python.eval('math.isnan')
 
 	local isint = python.eval('lambda n: type(n) is int')
 	local isfloat = python.eval('lambda n: type(n) is float')
@@ -544,29 +551,53 @@ function Testbench:TestIntegerFromLuaToPython()
 	assert(eqtype(1.2, '1.2'))
 	assert(eqvalue(1.2, '1.2'))
 
+	assert(isfloat(math.pi))
+	assert(eqtype(math.pi, 'math.pi'))
+	assert(eqvalue(math.pi, 'math.pi'))
+
+	-- According to IEEE 754, a nan value is considered not equal to any value, including itself
+	-- So we can't really compare Python and Lua nan's but we can use math.isnan from Python
+	assert(isnan(0/0))
+
+	assert(eqvalue(1/0, 'float("inf")'))
+	assert(eqvalue(-1/0, 'float("-inf")'))
+
 	if hasintegers then
-		-- Preserves underlying type
+		-- If Lua supports integers, the subtype is preserved
 		assert(isfloat(1.0))
 		assert(eqtype(1.0, '1.0'))
 	else
-		-- Merely checks for decimals
+		-- If Lua doesn't support integers, the subtype is
+		-- infered by whether the number has a decimal part or not
 		assert(isint(1.0))
 		assert(eqtype(1.0, '1'))
 	end
 end
 
-function Testbench:TestIntegerFromPythonToLua()
-	python.exec('import math')
-	
-	local one = python.eval('1')
-	local onef = python.eval('1.0')
+function Testbench:TestNumberFromPythonToLua()
+	framework:TestNumEq(python.eval('1'), 1)
+	framework:TestNumEq(python.eval('1.0'), 1.0)
+	framework:TestNumEq(python.eval('math.pi'), math.pi)
 
-	local python_pi = python.eval('math.pi')
-	local lua_pi = math.pi
+	-- According to IEEE 754, a nan value is considered not equal to any value, including itself
+	-- So we can't really compare Python and Lua nan's but we can compare Python nan to itself and
+	-- except that the comparison will return false
+	local nan = python.eval('float("nan")')
+	framework:TestMathTypeEq(nan, 0/0)
+	assert(nan ~= nan, "Python nan converted to Lua is not nan")
+
+	framework:TestNumEq(python.eval('float("inf")'), 1/0)
+	framework:TestNumEq(python.eval('float("-inf")'), -1/0)
+
+	-- 10^500 >> 2^63 - 1 (signed 64-bit integer maximum value)
+	-- 10^500 >> 1.8*10^308 (double-precision floating-point format maximum value)
+	assert(not pcall(python.eval, '10**500'),
+		"Converting too large Python integers should throw an error")
 	
-	framework:TestNumEq(one, 1)
-	framework:TestNumEq(onef, 1.0)
-	framework:TestNumEq(python_pi, lua_pi)
+	-- -10^500 << 2^64 (signed 64-bit integer minimum value)
+	-- -10^500 << -1.8*10^308 (double-precision floating-point format minimum value)
+	assert(not pcall(python.eval, '-10**500'),
+		"Converting too large Python integers should throw an error")
 end
 
 -----------------------------------------------------------
