@@ -29,14 +29,22 @@ sudo make install
 
 ### Building the Lua library
 
-Example with Lua 5.4.2, where `xxx` is your platform.
+Example with Lua 5.4.2.
 
 ```sh
 curl -R -O http://www.lua.org/ftp/lua-5.4.2.tar.gz
 tar zxf lua-5.4.2.tar.gz
 cd lua-5.4.2
 sed 's/\(^CFLAGS.*\)/\1 -fPIC/' -i src/Makefile
-sudo make xxx install
+sudo make linux install
+```
+
+Example with Lua 5.4.2, by using [luaver].
+
+```sh
+luaver get 5.4.2
+CFLAGS=-fPIC luaver make 5.4.2 linux
+luaver set 5.4.2
 ```
 
 ### Building the Python library
@@ -104,3 +112,5 @@ lua tests/testbench.lua
 [Lua]: https://www.lua.org/
 [Python]: https://www.python.org/
 [pyenv]: https://github.com/pyenv/pyenv
+[luaver]: https://github.com/guidanoli/luaver
+
