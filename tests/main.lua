@@ -32,11 +32,9 @@ local hasintegers = math.tointeger ~= nil
 -- Test cases
 -----------------------------------------------------------
 
-local Testbench = {
-	name = "lupafromlua",
-}
+local Testbench = {}
 
-function Testbench:TestLuaVersion()
+function Testbench:LuaVersion()
 	local lua = python.eval("lua")
 	local lupa_lua_version = lua.lua_version
 
@@ -58,7 +56,7 @@ function Testbench:TestLuaVersion()
 	assert(semvernums[2] == lupa_lua_minor)
 end
 
-function Testbench:TestAsAttributeGetter_List()
+function Testbench:AsAttributeGetter_List()
 	local l = python.list()
 
 	assert(not pcall(function()
@@ -77,7 +75,7 @@ function Testbench:TestAsAttributeGetter_List()
 	assert(len_func() == 1)
 end
 
-function Testbench:TestAsAttributeGetter_Dict()
+function Testbench:AsAttributeGetter_Dict()
 	local d = python.dict()
 
 	assert(not pcall(function()
@@ -101,7 +99,7 @@ function Testbench:TestAsAttributeGetter_Dict()
 	assert(get_func("key1", python.none) == "value1")
 end
 
-function Testbench:TestAsAttributeGetter_Builtins()
+function Testbench:AsAttributeGetter_Builtins()
 	local builtins = python.builtins
 	-- Since builtins is a module, it does not implement the
 	-- sequence protocol, which means that by default, lupa
@@ -113,7 +111,7 @@ function Testbench:TestAsAttributeGetter_Builtins()
 	assert(python.equal(l1,l2))
 end
 
-function Testbench:TestAsItemGetter_List()
+function Testbench:AsItemGetter_List()
 	local l = python.list()
 
 	assert(not pcall(function ()
@@ -144,7 +142,7 @@ function Testbench:TestAsItemGetter_List()
 	end
 end
 
-function Testbench:TestAsItemGetter_Dict()
+function Testbench:AsItemGetter_Dict()
 	local d = python.dict()
 
 	assert(not pcall(function ()
@@ -173,7 +171,7 @@ function Testbench:TestAsItemGetter_Dict()
 	end
 end
 
-function Testbench:TestAsFunction_Eval()
+function Testbench:AsFunction_Eval()
 	local eval_asfunction = python.as_function(python.eval)
 
 	-- Even though eval is already a wrapper (userdata),
@@ -181,7 +179,7 @@ function Testbench:TestAsFunction_Eval()
 	assert(eval_asfunction("1 + 1") == 2)
 end
 
-function Testbench:TestEval()
+function Testbench:Eval()
 	local testcases = {
 		{ "1", 1 },
 		{ "1 + 1", 2 },
@@ -236,7 +234,7 @@ function Testbench:TestEval()
 	end
 end
 
-function Testbench:TestExecAssignment()
+function Testbench:ExecAssignment()
 	local varname = newname()
 	local value = math.random(128)
 
@@ -245,7 +243,7 @@ function Testbench:TestExecAssignment()
 	assert(python.eval(varname) == value)
 end
 
-function Testbench:TestExecCall()
+function Testbench:ExecCall()
 	local funcname = newname()
 	local varname = newname()
 	local paramname = newname()
@@ -260,18 +258,18 @@ function Testbench:TestExecCall()
 	assert(python.eval(varname) == value)
 end
 
-function Testbench:TestExecAssert()
+function Testbench:ExecAssert()
 	python.exec("assert True")
 	assert(not pcall(function()
 		python.exec("assert False")
 	end))
 end
 
-function Testbench:TestExecPass()
+function Testbench:ExecPass()
 	python.exec("pass")
 end
 
-function Testbench:TestExecAugmentedAssignment()
+function Testbench:ExecAugmentedAssignment()
 	local varname = newname()
 
 	python.exec(varname .. " = 321")
@@ -279,7 +277,7 @@ function Testbench:TestExecAugmentedAssignment()
 	assert(python.eval(varname) == 444)
 end
 
-function Testbench:TestExecDel()
+function Testbench:ExecDel()
 	local varname = newname()
 
 	python.exec(varname .. " = { 1:1 }")
@@ -288,50 +286,50 @@ function Testbench:TestExecDel()
 	assert(python.equal(python.eval(varname), python.dict()))
 end
 
-function Testbench:TestExecReturn()
+function Testbench:ExecReturn()
 	assert(not pcall(function()
 		python.exec("return")
 	end))
 end
 
-function Testbench:TestExecYield()
+function Testbench:ExecYield()
 	assert(not pcall(function()
 		python.exec("yield")
 	end))
 end
 
-function Testbench:TestExecRaise()
+function Testbench:ExecRaise()
 	assert(not pcall(function()
 		python.exec("raise RuntimeError")
 	end))
 end
 
-function Testbench:TestExecBreak()
+function Testbench:ExecBreak()
 	assert(not pcall(function()
 		python.exec("break")
 	end))
 end
 
-function Testbench:TestExecContinue()
+function Testbench:ExecContinue()
 	assert(not pcall(function()
 		python.exec("continue")
 	end))
 end
 
-function Testbench:TestExecImport()
+function Testbench:ExecImport()
 	local alias = newname()
 
 	python.exec("import lupa")
 	python.exec("from lupa import LuaRuntime as " .. alias)
 end
 
-function Testbench:TestExecGlobal()
+function Testbench:ExecGlobal()
 	local varname = newname()
 
 	python.exec("global " .. varname)
 end
 
-function Testbench:TestExecNonLocal()
+function Testbench:ExecNonLocal()
 	local varname = newname()
 
 	assert(not pcall(function()
@@ -339,7 +337,7 @@ function Testbench:TestExecNonLocal()
 	end))
 end
 
-function Testbench:TestIterList()
+function Testbench:IterList()
 	local l = python.list(1, 2, 3)
 	local i = 1
 	for li in python.iter(l) do
@@ -348,7 +346,7 @@ function Testbench:TestIterList()
 	end
 end
 
-function Testbench:TestIterDict()
+function Testbench:IterDict()
 	local d = python.dict("a", 1, "b", 2, "c", 3)
 	local t = {a=1, b=2, c=3}
 	for di in python.iter(d) do
@@ -357,7 +355,7 @@ function Testbench:TestIterDict()
 	end
 end
 
-function Testbench:TestIterClass()
+function Testbench:IterClass()
 	local classname = newname()
 
 	python.exec("class " .. classname .. ":\n" ..
@@ -376,7 +374,7 @@ function Testbench:TestIterClass()
 	end
 end
 
-function Testbench:TestNone()
+function Testbench:None()
 	assert(python.equal(python.none, nil))
 	assert(tostring(python.none) == "None")
 	assert(python.builtins.str(python.none) == "None")
@@ -410,7 +408,7 @@ function Testbench:TestNone()
 	assert(entered)
 end
 
-function Testbench:TestIterEx()
+function Testbench:IterEx()
 	local d = python.dict("a", 1, "b", 2, "c", 3)
 	local t = {a=1, b=2, c=3}
 	local d_items = python.as_attrgetter(d).items()
@@ -438,7 +436,7 @@ function Testbench:TestIterEx()
 	end
 end
 
-function Testbench:TestEnumerate()
+function Testbench:Enumerate()
 	local l, entered
 
 	l = python.list(0, 1, 2, 3)
@@ -457,7 +455,7 @@ function Testbench:TestEnumerate()
 	assert(not entered)
 end
 
-function Testbench:TestCallback()
+function Testbench:Callback()
 	local cb_called = false
 	local lua_cb = function() cb_called = true end
 	local python_cb = python.wrap(lua_cb)
@@ -467,7 +465,7 @@ function Testbench:TestCallback()
 	assert(cb_called)
 end
 
-function Testbench:TestRoundtrip()
+function Testbench:Roundtrip()
 	local testcases = {
 		nil,
 		python.none,
@@ -494,7 +492,7 @@ function Testbench:TestRoundtrip()
 	end
 end
 
-function Testbench:TestMultipleReturnValues()
+function Testbench:MultipleReturnValues()
 	local testcases = {
 		{
 			input = { "a", "b", "c" },
@@ -532,7 +530,7 @@ function Testbench:TestMultipleReturnValues()
 	
 end
 
-function Testbench:TestNumberFromLuaToPython()
+function Testbench:NumberFromLuaToPython()
 	local eqtype = python.eval('lambda a, b: type(a) is type(eval(b))')
 	local eqvalue = python.eval('lambda a, b: a == eval(b)')
 	local isnan = python.eval('math.isnan')
@@ -585,7 +583,7 @@ function Testbench:TestNumberFromLuaToPython()
 	end
 end
 
-function Testbench:TestNumberFromPythonToLua()
+function Testbench:NumberFromPythonToLua()
 	utils:TestNumEq(python.eval('1'), 1)
 	utils:TestNumEq(python.eval('1.0'), 1.0)
 	utils:TestNumEq(python.eval('math.pi'), math.pi)

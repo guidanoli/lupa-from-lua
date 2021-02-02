@@ -9,9 +9,7 @@ local python = require 'lupafromlua'
 -- Test cases
 -----------------------------------------------------------
 
-local Testbench = {
-	name = "lupafromluagc",
-}
+local Testbench = {}
 
 
 function Testbench:CopyInLua()
