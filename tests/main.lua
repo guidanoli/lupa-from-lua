@@ -3,7 +3,7 @@
 -- Run from the project root directory
 -----------------------------------------------------------
 
-local framework = require "tests.framework"
+local utils = require "tests.utils"
 local python = require "tests.lupa"
 
 -----------------------------------------------------------
@@ -32,7 +32,7 @@ local hasintegers = math.tointeger ~= nil
 -- Test cases
 -----------------------------------------------------------
 
-Testbench = {
+local Testbench = {
 	name = "lupafromlua",
 }
 
@@ -586,19 +586,19 @@ function Testbench:TestNumberFromLuaToPython()
 end
 
 function Testbench:TestNumberFromPythonToLua()
-	framework:TestNumEq(python.eval('1'), 1)
-	framework:TestNumEq(python.eval('1.0'), 1.0)
-	framework:TestNumEq(python.eval('math.pi'), math.pi)
+	utils:TestNumEq(python.eval('1'), 1)
+	utils:TestNumEq(python.eval('1.0'), 1.0)
+	utils:TestNumEq(python.eval('math.pi'), math.pi)
 
 	-- According to IEEE 754, a nan value is considered not equal to any value, including itself
 	-- So we can't really compare Python and Lua nan's but we can compare Python nan to itself and
 	-- except that the comparison will return false
 	local nan = python.eval('float("nan")')
-	framework:TestMathTypeEq(nan, 0/0)
+	utils:TestMathTypeEq(nan, 0/0)
 	assert(nan ~= nan, "Python nan converted to Lua is not nan")
 
-	framework:TestNumEq(python.eval('float("inf")'), 1/0)
-	framework:TestNumEq(python.eval('float("-inf")'), -1/0)
+	utils:TestNumEq(python.eval('float("inf")'), 1/0)
+	utils:TestNumEq(python.eval('float("-inf")'), -1/0)
 
 	-- 10^500 >> 2^63 - 1 (signed 64-bit integer maximum value)
 	-- 10^500 >> 1.8*10^308 (double-precision floating-point format maximum value)
@@ -611,12 +611,4 @@ function Testbench:TestNumberFromPythonToLua()
 		"Converting too large Python integers should throw an error")
 end
 
------------------------------------------------------------
--- Test running
------------------------------------------------------------
-
-local report = framework:RunTestbench(Testbench)
-
-if report.failed ~= 0 then
-	os.exit(1)
-end
+return Testbench

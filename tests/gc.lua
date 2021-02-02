@@ -5,17 +5,42 @@
 
 local python = require 'lupafromlua'
 
-collectgarbage()
-print("Collected garbage")
+-----------------------------------------------------------
+-- Test cases
+-----------------------------------------------------------
 
-local l = python.builtins.list()
-print("Created Python list l and reference to it in Lua")
+local Testbench = {
+	name = "lupafromluagc",
+}
 
-collectgarbage()
-print("Collected garbage")
 
-l = nil
-print("Removed reference to Python list l from Lua")
+function Testbench:CopyInLua()
+	collectgarbage()
+	print("Collected garbage")
 
-collectgarbage()
-print("Collected garbage")
+	local l = python.builtins.list()
+	print("Created Python list l and reference to it in Lua")
+
+	collectgarbage()
+	print("Collected garbage")
+
+	local lcopy = l
+	print("Created another reference to Python list l")
+
+	collectgarbage()
+	print("Collected garbage")
+
+	l = nil
+	print("Removed original reference to Python list l from Lua")
+
+	collectgarbage()
+	print("Collected garbage")
+
+	lcopy = nil
+	print("Removed second reference to Python list l from Lua")
+
+	collectgarbage()
+	print("Collected garbage")
+end
+
+return Testbench

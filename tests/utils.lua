@@ -1,8 +1,8 @@
 ---------------------------------
--- Unit testing framework
+-- Utility functions
 ---------------------------------
 
-local Framework = {
+local Utils = {
 	colors = {
 		black = 30,
 		red = 31,
@@ -23,7 +23,7 @@ local Framework = {
 --     default: '<' operator
 -- Return:
 -- * iterator that returns key and value
-function Framework:SortedPairs(t, f)
+function Utils:SortedPairs(t, f)
 	local a = {}
 	for n in pairs(t) do table.insert(a, n) end
 	table.sort(a, f)
@@ -43,58 +43,13 @@ end
 -- tagcolor = (message tag color) [string, nil]
 --            default: no color
 -- message = (actual message) [string]
-function Framework:Print(tag, tagcolor, message)
+function Utils:Print(tag, tagcolor, message)
 	local tagcolorcode = self.colors[tagcolor] or 0
 	print("[\27[" .. tagcolorcode .. "m " .. tag .. "\27[0m ] " .. message)
 end
 
--- Run all test cases of a test bench, printing a report at the end
--- Arguments:
--- tb = {
---   name = (testbench name) [string],
---   Test.* = (test case function) [function],
--- }
--- Returns:
--- * {
---   total = (total test cases count) [number],
---   passed = (passed test cases count) [number],
---   failed = (failed test cases count) [number],
--- }
-function Framework:RunTestbench(tb)
-	self:Print("####", nil, "Testing " .. tb.name)
-
-	local passed = 0
-	local failed = 0
-
-	for testname, testfunc in self:SortedPairs(tb) do
-		if testname:find("^Test") ~= nil then
-			local ok, errmsg = pcall(testfunc, tb)
-			if ok then
-				self:Print("PASS", "green", testname)
-				passed = passed + 1
-			else
-				self:Print("FAIL", "red", testname)
-				print(errmsg)
-				failed = failed + 1
-			end
-		end
-	end
-
-	self:Print("####", nil, (failed + passed) .. " tests run")
-	if failed > 0 then
-		self:Print("####", nil, failed .. " failed")
-	else
-		self:Print("####", nil, "All passed")
-	end
-
-	return {
-		total = failed + passed,
-		failed = failed,
-		passed = passed
-	}
-end
-
-function Framework:TestTypeEq(a, b)
+-- Asserts arguments have equal type
+function Utils:TestTypeEq(a, b)
 	ta, tb = type(a), type(b)
 	assert(ta == tb,
 		tostring(a) .. " and " .. tostring(b) ..
@@ -102,7 +57,8 @@ function Framework:TestTypeEq(a, b)
 		" and " .. tb .. " respectively)")
 end
 
-function Framework:TestMathTypeEq(a, b)
+-- Asserts arguments have equal math.type (if supported)
+function Utils:TestMathTypeEq(a, b)
 	if math.type then
 		ta, tb = math.type(a), math.type(b)
 		assert(ta == tb,
@@ -112,11 +68,13 @@ function Framework:TestMathTypeEq(a, b)
 	end
 end
 
-function Framework:TestNumEq(a, b)
+-- Asserts arguments have equal type and, if supported, math.type
+-- and equal numerical value
+function Utils:TestNumEq(a, b)
 	self:TestTypeEq(a, b)
 	self:TestMathTypeEq(a, b)
 	assert(a == b,
 		tostring(a) .. " != " .. tostring(b))
 end
 
-return Framework
+return Utils

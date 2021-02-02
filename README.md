@@ -101,10 +101,10 @@ python setup.py develop --uninstall --user
 
 ## Testing
 
-Having built the project, you may run the test suite from the repository root. A report should be printed out.
+Having built the project, you may run the main test suite from the repository root. A report should be printed out.
 
 ```sh
-lua tests/testbench.lua
+lua tests/run.lua main
 ```
 
 [Lupa]: https://github.com/scoder/lupa
