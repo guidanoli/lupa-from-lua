@@ -1,5 +1,6 @@
 # To do list
 
+* Study alternative handling of number conversion between Python and Lua in case of overflow
 * Study the implementation of garbage collection and investigate possible memory leaks
 * Study the implementation of named parameters using decorators
 * Study alternative implementations of named parameters
