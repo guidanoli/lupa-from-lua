@@ -27,9 +27,7 @@ local run_testbench = function(tb)
 				passed = passed + 1
 			else
 				utils:Print("FAIL", "red", testname)
-				if type(errmsg) == "str" then
-					io.stderr:write(errmsg .. "\n")
-				end
+				io.stderr:write(tostring(errmsg) .. "\n")
 				failed = failed + 1
 			end
 		end
@@ -64,7 +62,7 @@ if #arg == 0 then
 else
 	local ok, ret = pcall(require, "tests." .. arg[1])
 	if not ok then
-		io.stderr:write(ret)
+		io.stderr:write(tostring(ret) .. "\n")
 		os.exit(1)
 	else
 		utils:Print("####", nil, "Testing " .. arg[1])

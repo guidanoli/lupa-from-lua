@@ -19,7 +19,7 @@ python.import "math"
 local names = 0
 
 -- Avoids name collision in Python global scope
-local newname = function()
+local function newname()
 	local name = names
 	names = names + 1
 	return "t" .. name
@@ -27,6 +27,16 @@ end
 
 -- Check if current Lua version supports integers
 local hasintegers = math.tointeger ~= nil
+
+local function setoverflowhandler(f)
+	lupa_overflow_cb = f
+end
+
+local function testoverflow(expected)
+	local ok, ret = pcall(python.eval, '10**500')
+	assert(ok == expected, ret)
+	return ret
+end
 
 -----------------------------------------------------------
 -- Test cases
@@ -457,7 +467,7 @@ end
 
 function Testbench:Callback()
 	local cb_called = false
-	local lua_cb = function() cb_called = true end
+	local function lua_cb() cb_called = true end
 	local python_cb = python.wrap(lua_cb)
 
 	assert(not cb_called)
@@ -538,7 +548,7 @@ function Testbench:NumberFromLuaToPython()
 	local isint = python.eval('lambda n: type(n) is int')
 	local isfloat = python.eval('lambda n: type(n) is float')
 
-	local roundtrip = function(num)
+	local function roundtrip(num)
 		assert(eqtype(num, tostring(num)))
 		assert(eqvalue(num, tostring(num)))
 	end
@@ -598,6 +608,9 @@ function Testbench:NumberFromPythonToLua()
 	utils:TestNumEq(python.eval('float("inf")'), 1/0)
 	utils:TestNumEq(python.eval('float("-inf")'), -1/0)
 
+	-- Make sure no overflow handler is set
+	setoverflowhandler(nil)
+
 	-- 10^500 >> 2^63 - 1 (signed 64-bit integer maximum value)
 	-- 10^500 >> 1.8*10^308 (double-precision floating-point format maximum value)
 	assert(not pcall(python.eval, '10**500'),
@@ -607,6 +620,31 @@ function Testbench:NumberFromPythonToLua()
 	-- -10^500 << -1.8*10^308 (double-precision floating-point format minimum value)
 	assert(not pcall(python.eval, '-10**500'),
 		"Converting too large Python integers should throw an error")
+end
+
+function Testbench:NoHandler()
+	setoverflowhandler(nil)
+	testoverflow(false)
+end
+
+function Testbench:EmptyHandler()
+	setoverflowhandler(function() end)
+	assert(testoverflow(true) == nil)
+end
+
+function Testbench:HandlerWithLuaError()
+	setoverflowhandler(function() error() end)
+	assert(testoverflow(false))
+end
+
+function Testbench:DoubleFallbackHandler()
+	local python_float = python.eval('float')
+	setoverflowhandler(function(o)
+		return python_float(o)
+	end)
+	local ok, ret = pcall(python.eval, '10**100')
+	assert(ok, ret)
+	utils:TestNumEq(ret, 1e100)
 end
 
 return Testbench
