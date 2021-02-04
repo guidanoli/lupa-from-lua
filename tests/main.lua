@@ -28,14 +28,39 @@ end
 -- Check if current Lua version supports integers
 local hasintegers = math.tointeger ~= nil
 
+-- Set current overflow handler
 local function setoverflowhandler(f)
 	lupa_overflow_cb = f
 end
 
-local function testoverflow(expected)
+-- Test the handling of overflow when trying to fit an overly
+-- big Python long into a Lua number (potentially an integer).
+-- You can either expect that an error will be raised (success=false)
+-- or that it will succeed (success=true)
+-- If it succeeds, returns the converted object
+-- If it fails, returns the error message
+local function testoverflow(success)
 	local ok, ret = pcall(python.eval, '10**500')
-	assert(ok == expected, ret)
+	assert(ok == success, tostring(ret) .. "\n" .. debug.traceback())
 	return ret
+end
+
+-- Test garbage collection, by making sure that the
+-- amount of memory used by Lua before and after calling f
+-- is either the same (equal=true) or different (equal=false)
+local function testgc(equal, f)
+	local count, ret, ok
+	collectgarbage()
+	collectgarbage()
+	count = collectgarbage('count')
+	ok, ret = pcall(f)
+	assert(ok, ret)
+	collectgarbage()
+	collectgarbage()
+	count = collectgarbage('count') - count
+	assert((count == 0.0) == equal,
+		"allocated space difference = after - before = " .. count*1024 .. "B" ..
+		" (expected to be " .. (equal and 0 or "!=0") .. ")\n" .. debug.traceback())
 end
 
 -----------------------------------------------------------
@@ -643,7 +668,7 @@ function Testbench:HandlerWithLuaError()
 	assert(testoverflow(false))
 end
 
-function Testbench:DoubleFallbackHandler()
+function Testbench:FloatFallbackHandler()
 	local python_float = python.eval('float')
 	setoverflowhandler(function(o)
 		return python_float(o)
@@ -651,6 +676,27 @@ function Testbench:DoubleFallbackHandler()
 	local ok, ret = pcall(python.eval, '10**100')
 	assert(ok, ret)
 	utils:TestNumEq(ret, 1e100)
+	testoverflow(false)
+end
+
+function Testbench:GarbageCollector()
+	testgc(true, function() end)	
+	testgc(true, function()
+		python.list()
+	end)
+	testgc(true, function()
+		local l = python.list()
+	end)
+	--[[
+	testgc(true, function()
+		local ext_l
+		testgc(false, function() ext_l = python.builtins.list() end)
+	end)
+	testgc(true, function()
+		local t = {}
+		testgc(false, function() t[1] = python.list() end)
+	end)
+	]]--
 end
 
 return Testbench

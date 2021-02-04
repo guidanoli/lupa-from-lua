@@ -54,7 +54,7 @@ function Utils:TestTypeEq(a, b)
 	assert(ta == tb,
 		tostring(a) .. " and " .. tostring(b) ..
 		" have different type (" .. ta ..
-		" and " .. tb .. " respectively)")
+		" and " .. tb .. " respectively)\n" .. debug.traceback())
 end
 
 -- Asserts arguments have equal math.type (if supported)
@@ -64,7 +64,7 @@ function Utils:TestMathTypeEq(a, b)
 		assert(ta == tb,
 			tostring(a) .. " and " .. tostring(b) ..
 			" have different mathematical types (" ..
-			ta .. " and " .. tb .. " respectively)")
+			ta .. " and " .. tb .. " respectively)\n" .. debug.traceback())
 	end
 end
 
@@ -74,7 +74,7 @@ function Utils:TestNumEq(a, b)
 	self:TestTypeEq(a, b)
 	self:TestMathTypeEq(a, b)
 	assert(a == b,
-		tostring(a) .. " != " .. tostring(b))
+		tostring(a) .. " != " .. tostring(b) .. "\n" .. debug.traceback())
 end
 
 return Utils
