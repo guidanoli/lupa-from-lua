@@ -230,6 +230,12 @@ function Testbench:Eval()
 		{ "True", true },
 		{ "(lambda x: x*2)(10)", 20 },
 		{ "(lambda x: x*2)([1, 2, 3])", python.list(1, 2, 3, 1, 2, 3) },
+		{ "''", "" },
+		{ "'ascii'", "ascii" },
+		{ "'ação'", "ação" },
+		{ "u''", "" },
+		{ "u'ação'", "ação" },
+		{ "'\\n\\t'", "\n\t" },
 	}
 
 	for testindex, testcase in ipairs(testcases) do
