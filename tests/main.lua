@@ -50,14 +50,16 @@ end
 -- is either the same (equal=true) or different (equal=false)
 local function testgc(equal, f)
 	local count, ret, ok
-	collectgarbage()
-	collectgarbage()
-	count = collectgarbage('count')
-	ok, ret = pcall(f)
-	assert(ok, ret)
-	collectgarbage()
-	collectgarbage()
-	count = collectgarbage('count') - count
+	for i = 1, 10 do
+		collectgarbage()
+		collectgarbage()
+		count = collectgarbage('count')
+		ok, ret = pcall(f)
+		assert(ok, ret)
+		collectgarbage()
+		collectgarbage()
+		count = collectgarbage('count') - count
+	end
 	assert((count == 0.0) == equal,
 		"allocated space difference = after - before = " .. count*1024 .. "B" ..
 		" (expected to be " .. (equal and 0 or "!=0") .. ")\n" .. debug.traceback())
@@ -687,16 +689,12 @@ function Testbench:GarbageCollector()
 	testgc(true, function()
 		local l = python.list()
 	end)
-	--[[
-	testgc(true, function()
-		local ext_l
-		testgc(false, function() ext_l = python.builtins.list() end)
-	end)
 	testgc(true, function()
 		local t = {}
-		testgc(false, function() t[1] = python.list() end)
+		testgc(false, function()
+			table.insert(t, python.list())
+		end)
 	end)
-	]]--
 end
 
 return Testbench

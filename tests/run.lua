@@ -6,22 +6,28 @@ local utils = require 'tests.utils'
 
 -- Run all test cases of a test bench, printing a report at the end
 -- Arguments:
--- tb = {
---   [string] = (test case) [function],
--- }
+--   testbenchname = (test bench name) [string]
 -- Returns:
--- {
---   total = (total test cases count) [number],
---   passed = (passed test cases count) [number],
---   failed = (failed test cases count) [number],
--- }
-local run_testbench = function(tb)
+--   [1] = (found test?) [bool]
+--   [2] = if [1] == false, error message [string]
+--         if [1] == true, test report [table]
+--         {
+--           passed = (passed test cases count) [number],
+--           failed = (failed test cases count) [number],
+--         }
+return function(testbenchname)
 	local passed = 0
 	local failed = 0
+	local ok, testbench = pcall(require, testbenchname)
 
-	for testname, testfunc in utils:SortedPairs(tb) do
+	if not ok then
+		return false, testbench
+	end
+
+	utils:Print("####", nil, "Running " .. testbenchname)
+	for testname, testfunc in utils:SortedPairs(testbench) do
 		if type(testfunc) == "function" then
-			local ok, errmsg = pcall(testfunc, tb)
+			local ok, errmsg = pcall(testfunc, testbench)
 			if ok then
 				utils:Print("PASS", "green", testname)
 				passed = passed + 1
@@ -40,35 +46,8 @@ local run_testbench = function(tb)
 		utils:Print("####", nil, "All passed")
 	end
 
-	return {
-		total = failed + passed,
+	return true, {
 		failed = failed,
 		passed = passed
 	}
-end
-
-if #arg == 0 then
-	local s = ""
-	local i = 0
-	while arg[i] ~= nil do
-		s = arg[i] .. " " .. s
-		i = i - 1
-	end
-	if string.len(s) == 0 then
-		s = "lua tests/run.lua "
-	end
-	io.stderr:write("Usage: " .. s .. "<testbenchname>\n")
-	os.exit(1)
-else
-	local ok, ret = pcall(require, "tests." .. arg[1])
-	if not ok then
-		io.stderr:write(tostring(ret) .. "\n")
-		os.exit(1)
-	else
-		utils:Print("####", nil, "Testing " .. arg[1])
-		local results = run_testbench(ret)
-		if results.failed > 0 then
-			os.exit(1)
-		end
-	end
 end

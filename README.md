@@ -8,7 +8,6 @@ For this purpose, the Lupa source code had to be slightly modified in the fork t
 * [CMake] >= 3.18
   * program
 * [Lua] >= 5.1
-  * program
   * [position independent static library](#building-the-lua-library)
 * [Python] 2.7 or >= 3.5
   * program
@@ -23,7 +22,7 @@ wget https://github.com/Kitware/CMake/releases/download/v3.18.5/cmake-3.18.5.tar
 tar -zxvf cmake-3.18.5.tar.gz
 cd cmake-3.18.5
 ./bootstrap
-make
+make -j $(nproc)
 sudo make install
 ```
 
@@ -36,14 +35,15 @@ curl -R -O http://www.lua.org/ftp/lua-5.4.2.tar.gz
 tar zxf lua-5.4.2.tar.gz
 cd lua-5.4.2
 sed 's/\(^CFLAGS.*\)/\1 -fPIC/' -i src/Makefile
-sudo make linux install
+make -j $(nproc)
+sudo make install
 ```
 
 Example with Lua 5.4.2, by using [luav].
 
 ```sh
 luav get 5.4.2
-CFLAGS=-fPIC luav make 5.4.2
+CFLAGS=-fPIC luav make 5.4.2 -j $(nproc)
 luav set 5.4.2
 ```
 
@@ -103,8 +103,11 @@ python setup.py develop --uninstall --user
 
 Having built the project, you may run the main test suite from the repository root. A report should be printed out.
 
-```sh
-lua tests/run.lua main
+```lua
+local run = require 'tests.run'
+local ok, ret = run('tests.main')
+assert(ok, ret)
+assert(ret.failed == 0)
 ```
 
 [Lupa]: https://github.com/scoder/lupa

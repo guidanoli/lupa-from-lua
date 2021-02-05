@@ -98,4 +98,4 @@ jobs:
         run: cmake --build build
 
       - name: Test Lupafromlua
-        run: lua tests/run.lua main
+        run: lua -e 'local run = require "tests.run"; local ok, ret = run("tests.main"); assert(ok, ret); assert(ret.failed == 0)'
