@@ -101,13 +101,25 @@ python setup.py develop --uninstall --user
 
 ## Testing
 
-Having built the project, you may run the main test suite from the repository root. A report should be printed out.
+Having built the project, you can run the tests from the repository root.
+Listed below are all the possible ways to achieve this.
+
+### With the Lua standalone
+
+```sh
+lua test.lua
+```
+
+or
+
+```sh
+lua -ltest -e 'test.run()'
+```
+
+### Inside Lua
 
 ```lua
-local run = require 'tests.run'
-local ok, ret = run('tests.main')
-assert(ok, ret)
-assert(ret.failed == 0)
+require'test'.run()
 ```
 
 [Lupa]: https://github.com/scoder/lupa

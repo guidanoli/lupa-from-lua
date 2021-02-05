@@ -15,6 +15,38 @@ local Utils = {
 	}
 }
 
+-- Converts Lua object into a pretty string
+-- Aimed for visualizing complex tables
+-- Arguments:
+-- * obj [object]
+-- Return:
+-- * str [string]
+function Utils:Pretty(obj)
+	local function _pretty(obj, pad, visited)
+		if type(obj) == "table" then
+			if next(obj) == nil then
+				return "{}"
+			elseif visited[obj] then
+				return "{...}"
+			else
+				local s = "{\n"
+				local newpad = pad .. "    "
+				visited[obj] = true
+				for key, value in self:SortedPairs(obj) do
+					s = s .. newpad .. "[" .. _pretty(key, newpad, visited) .. "] = " .. _pretty(value, newpad, visited) .. ",\n"
+				end
+				return s .. pad .. "}"
+			end
+		elseif type(obj) == "string" then
+			return '"' .. obj:gsub('\n','\\n') .. '"'
+		else
+			return tostring(obj)
+		end
+	end
+
+	return _pretty(obj, "", {})
+end
+
 -- Similar to regular 'pairs' function
 -- but sorted by table keys
 -- Arguments:
