@@ -101,22 +101,13 @@ python setup.py develop --uninstall --user
 
 ## Testing
 
-Having built the project, you can run the tests from the repository root.
-Listed below are all the possible ways to achieve this.
-
-### With the Lua standalone
+You can run the tests by passing the `test.lua` script to the Lua standalone.
 
 ```sh
 lua test.lua
 ```
 
-or
-
-```sh
-lua -ltest -e 'test.run()'
-```
-
-### Inside Lua
+Or, equivalently, by loading it in Lua and then calling `run`.
 
 ```lua
 require'test'.run()
