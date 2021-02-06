@@ -47,22 +47,22 @@ end
 
 -- Test garbage collection, by making sure that the
 -- amount of memory used by Lua before and after calling f
--- is either the same (equal=true) or different (equal=false)
-local function testgc(equal, f)
-	local count, ret, ok
-	for i = 1, 10 do
+-- stays the same (that is, all is garbage collected)
+local function testgc(f)
+	local count
+	for i = 1, 100 do
 		collectgarbage()
 		collectgarbage()
 		count = collectgarbage('count')
-		ok, ret = pcall(f)
-		assert(ok, ret)
+		f()
 		collectgarbage()
 		collectgarbage()
 		count = collectgarbage('count') - count
+		if count == 0 then
+			return
+		end
 	end
-	assert((count == 0.0) == equal,
-		"allocated space difference = after - before = " .. count*1024 .. "B" ..
-		" (expected to be " .. (equal and 0 or "!=0") .. ")\n" .. debug.traceback())
+	error(count*1024 .. " bytes leaked\n" .. debug.traceback())
 end
 
 -----------------------------------------------------------
@@ -682,19 +682,20 @@ function Testbench:FloatFallbackHandler()
 end
 
 function Testbench:GarbageCollector()
-	testgc(true, function() end)	
-	testgc(true, function()
-		python.list()
+	testgc(function() end)	
+	testgc(function() python.list() end)
+	testgc(function() local l = python.list() end)
+	testgc(function() local t = { python.list() } end)
+	testgc(function()
+		local d = python.dict()
+		d.ref = d
 	end)
-	testgc(true, function()
-		local l = python.list()
+	--[[
+	testgc(function()
+		local table = { dict = python.dict() }
+		table.dict.ref = table
 	end)
-	testgc(true, function()
-		local t = {}
-		testgc(false, function()
-			table.insert(t, python.list())
-		end)
-	end)
+	]]--
 end
 
 return Testbench

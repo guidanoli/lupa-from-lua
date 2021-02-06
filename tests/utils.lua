@@ -33,12 +33,25 @@ function Utils:Pretty(obj)
 				local newpad = pad .. "    "
 				visited[obj] = true
 				for key, value in self:SortedPairs(obj) do
-					s = s .. newpad .. "[" .. _pretty(key, newpad, visited) .. "] = " .. _pretty(value, newpad, visited) .. ",\n"
+					s = s .. newpad .. "[" .. _pretty(key, newpad, visited) .. "] = " .. 
+					                          _pretty(value, newpad, visited) .. ",\n"
 				end
 				return s .. pad .. "}"
 			end
 		elseif type(obj) == "string" then
-			return '"' .. obj:gsub('\n','\\n') .. '"'
+			local chars = {
+				['\a'] = '\\a',
+				['\b'] = '\\b',
+				['\f'] = '\\f',
+				['\n'] = '\\n',
+				['\r'] = '\\r',
+				['\t'] = '\\t',
+				['\v'] = '\\v',
+			}
+			for char, flatchar in pairs(chars) do
+				obj = obj:gsub(char, flatchar)
+			end
+			return '"' .. obj .. '"'
 		else
 			return tostring(obj)
 		end
