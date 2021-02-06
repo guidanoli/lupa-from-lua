@@ -17,7 +17,7 @@ For this purpose, the Lupa source code had to be slightly modified in the fork t
 
 Example with CMake 3.18.5
 
-```
+```sh
 wget https://github.com/Kitware/CMake/releases/download/v3.18.5/cmake-3.18.5.tar.gz
 tar -zxvf cmake-3.18.5.tar.gz
 cd cmake-3.18.5
