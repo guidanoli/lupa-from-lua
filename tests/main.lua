@@ -576,7 +576,7 @@ end
 function Testbench:NumberFromLuaToPython()
 	local eqtype = python.eval('lambda a, b: type(a) is type(eval(b))')
 	local eqvalue = python.eval('lambda a, b: a == eval(b)')
-	local isnan = python.eval('math.isnan')
+	local isnan = python._.math.isnan
 
 	local isint = python.eval('lambda n: type(n) is int')
 	local isfloat = python.eval('lambda n: type(n) is float')
@@ -696,6 +696,12 @@ function Testbench:GarbageCollector()
 		table.dict.ref = table
 	end)
 	]]--
+end
+
+function Testbench:ExceptionMessage()
+	local ok, ret = pcall(python.exec, 'raise Exception("myerrormessage")')
+	assert(not ok, "Python raise should have led to Lua error")
+	assert(ret:find("Exception: myerrormessage"), "Error message should be preserved")
 end
 
 return Testbench

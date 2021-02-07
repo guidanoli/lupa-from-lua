@@ -53,14 +53,21 @@ python.dict = function(...)
 	return d
 end
 
-python.import = function(...)
-	local t = table.pack(...)
-	local i = 1
-	while i <= t.n do
-		local module = t[i]
-		python.exec("import " .. module)
-		i = i + 1
-	end
+python.import = function(module)
+	python.exec("import " .. module)
 end
+
+python._ = {}
+setmetatable(python._, {
+	__mode = "v",
+	__index = function(t, modulename)
+		local module = python.builtins.__import__(modulename)
+		for submodule in modulename:gmatch('%.([^.]+)') do
+			module = module[submodule]
+		end
+		t[modulename] = module
+		return module
+	end,
+})
 
 return python
