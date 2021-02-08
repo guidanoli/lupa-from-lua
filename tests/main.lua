@@ -690,12 +690,11 @@ function Testbench:GarbageCollector()
 		local d = python.dict()
 		d.ref = d
 	end)
-	--[[
 	testgc(function()
-		local table = { dict = python.dict() }
-		table.dict.ref = table
+		local t = { dict = python.dict() }
+		setmetatable(t, {__mode = "v"})
+		t.dict.ref = t
 	end)
-	]]--
 end
 
 function Testbench:ExceptionMessage()
