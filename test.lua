@@ -34,7 +34,7 @@ function t.run()
 	end
 end
 
-if arg[0]:find("tests[\\/]init.lua$") then
+if arg[0] == "test.lua" then
 	t.run()
 end
 

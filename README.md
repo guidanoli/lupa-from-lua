@@ -101,18 +101,16 @@ python setup.py develop --uninstall --user
 
 ## Testing
 
-You can run the tests with the Lua standalone.
+You can run the tests by passing the `test.lua` script to the Lua standalone.
 
 ```sh
-lua tests/init.lua
-# or
-lua -ltests -e'tests.run()'
+lua test.lua
 ```
 
 Or, equivalently, by loading it in Lua and then calling `run`.
 
 ```lua
-require'tests'.run()
+require'test'.run()
 ```
 
 [Lupa]: https://github.com/scoder/lupa
