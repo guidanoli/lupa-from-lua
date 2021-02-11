@@ -64,14 +64,15 @@ end
 -- but sorted by table keys
 -- Arguments:
 -- t = (table to be iterated) [table]
--- f = (sorting function) [function, nil]
---     default: '<' operator
 -- Return:
 -- * iterator that returns key and value
-function Utils:SortedPairs(t, f)
+function Utils:SortedPairs(t)
 	local a = {}
 	for n in pairs(t) do table.insert(a, n) end
-	table.sort(a, f)
+	table.sort(a, function(a, b)
+		local ta, tb = type(a), type(b)
+		return ta < tb or ta == tb and a < b
+	end)
 	local i = 0 -- iterator variable
 	local iter = function() -- iterator function
 		i = i + 1
