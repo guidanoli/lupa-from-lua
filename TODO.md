@@ -13,6 +13,9 @@
     problem is to detect these reference cycles in both languages since they implement garbage collection
     quite differently, and, nonetheless, each language GC cannot "see" the full cycle.
 
+  * Python supports cyclic garbage collection, assuming container objects have special callbacks
+    and flags for traversing all the objects in it [(6)].
+
 # Done
 
 * Write a CMakeLists.txt that finds Lua
@@ -56,3 +59,4 @@
 [(3)]: https://www.man7.org/linux/man-pages/man3/dlopen.3.html
 [(4)]: https://stackoverflow.com/questions/29880931/importerror-and-pyexc-systemerror-while-embedding-python-script-within-c-for-pam
 [(5)]: https://sourceforge.net/p/pam-python/code/ci/default/tree/src/pam_python.c#l2507
+[(6)]: https://docs.python.org/3/c-api/gcsupport.html
