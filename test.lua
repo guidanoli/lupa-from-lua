@@ -7,6 +7,7 @@ local utils = require 'tests.utils'
 local t = {}
 
 -- Run all test cases, printing a report at the end
+-- If one test fails, exits with error code 1
 function t.run()
 	local passed = 0
 	local failed = 0
@@ -34,7 +35,7 @@ function t.run()
 	end
 end
 
-if arg[0] == "test.lua" then
+if type(arg) == "table" and arg[0] == "test.lua" then
 	t.run()
 end
 
