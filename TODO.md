@@ -1,8 +1,17 @@
 # To do list
 
-* Study the implementation of garbage collection and investigate possible memory leaks
 * Study the implementation of named parameters using decorators
 * Study alternative implementations of named parameters
+
+# Doing
+
+* Study the implementation of garbage collection and investigate possible memory leaks
+
+  * There is a bug in Lupa which leads to memory leakage due to cyclic references between Lua and Python.
+    These objects are indeed collected when the LuaRuntime object in Python is collected, but until then
+    many of these cycles may be created, rendering plenty of memory space useless to the user. The great
+    problem is to detect these reference cycles in both languages since they implement garbage collection
+    quite differently, and, nonetheless, each language GC cannot "see" the full cycle.
 
 # Done
 
