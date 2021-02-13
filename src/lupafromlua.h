@@ -29,11 +29,11 @@
 
 /* Define the same function for obtaining the version of Lua */
 #if LUA_VERSION_NUM >= 504
-#	define read_lua_version(L)  ((long) lua_version(L))
+#	define read_lua_version(L)  ((long int) lua_version(L))
 #elif LUA_VERSION_NUM >= 502
-#	define read_lua_version(L)  ((long) *lua_version(L))
+#	define read_lua_version(L)  ((long int) *lua_version(L))
 #elif LUA_VERSION_NUM >= 501
-#	define read_lua_version(L)  ((long) LUA_VERSION_NUM)
+#	define read_lua_version(L)  ((long int) LUA_VERSION_NUM)
 #else
 #	error Lupafromlua requires at least Lua 5.1
 #endif

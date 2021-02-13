@@ -163,9 +163,9 @@ DLL_EXPORT int luaopen_lupafromlua (lua_State *L)
 	/* Make sure Lupa is using the same version of Lua */
 	check_true(L, lupa_lua_version_major_l == current_lua_version_major &&
 			lupa_lua_version_minor_l == current_lua_version_minor,
-			"Lupa is using Lua %ld.%ld (expected %ld.%ld)",
-			lupa_lua_version_major_l, lupa_lua_version_minor_l,
-			current_lua_version_major, current_lua_version_minor);
+			"Lupa is using Lua %d.%d (expected %d.%d)",
+			(int) lupa_lua_version_major_l, (int) lupa_lua_version_minor_l,
+			(int) current_lua_version_major, (int) current_lua_version_minor);
 
 	/* Get LuaRuntime from lupa
 	
