@@ -1,27 +1,5 @@
 #include "lupafromlua.h"
 
-#include <stdarg.h>
-#include <stdlib.h>
-#include <wchar.h>
-
-#include "Python.h"
-#include "lauxlib.h"
-
-#if defined(__linux__)
-#	include <dlfcn.h>
-#endif
-
-/* Define the same function for obtaining the version of Lua */
-#if LUA_VERSION_NUM >= 504
-#	define read_lua_version(L)  ((long) lua_version(L))
-#elif LUA_VERSION_NUM >= 502
-#	define read_lua_version(L)  ((long) *lua_version(L))
-#elif LUA_VERSION_NUM >= 501
-#	define read_lua_version(L)  ((long) LUA_VERSION_NUM)
-#else
-#	error Lupafromlua requires at least Lua 5.1
-#endif
-
 /* Checks if a condition is true. If not, raises an error in Lua. */
 static void check_true (lua_State *L, int condition, const char *fmt, ...)
 {
@@ -54,7 +32,7 @@ static long pyint_to_long (lua_State *L, PyObject *o, const char *oname)
 	long l;
 
 	check_true(L,
-#if PY_MAJOR_VERSION >= 3
+#ifdef IS_PY3K
 			PyLong_Check(o),
 #else
 			PyInt_Check(o),
@@ -62,7 +40,7 @@ static long pyint_to_long (lua_State *L, PyObject *o, const char *oname)
 			"Excepted %s to be of integer type", oname);
 
 	l = 
-#if PY_MAJOR_VERSION >= 3
+#ifdef IS_PY3K
 		PyLong_AsLong(o);
 #else
 		PyInt_AsLong(o);
@@ -180,6 +158,8 @@ DLL_EXPORT int luaopen_lupafromlua (lua_State *L)
 	/* Convert lupa.LUA_VERSION[1] to a C long */
 	lupa_lua_version_minor_l = pyint_to_long(L, lupa_lua_version_minor, "lupa.LUA_VERSION[1]");
 
+	Py_DECREF(lupa_lua_version);
+
 	/* Make sure Lupa is using the same version of Lua */
 	check_true(L, lupa_lua_version_major_l == current_lua_version_major &&
 			lupa_lua_version_minor_l == current_lua_version_minor,
@@ -192,6 +172,8 @@ DLL_EXPORT int luaopen_lupafromlua (lua_State *L)
 	   = lupa.LuaRuntime */
 	check_true(L, (lupa_lua_runtime_class = PyObject_GetAttrString(lupa, "LuaRuntime")) != NULL,
 			"Could not get LuaRuntime from lupa");
+
+	Py_DECREF(lupa);
 
 	/* Encapsulate the Lua state with the label "lua_State"
 	
@@ -211,11 +193,17 @@ DLL_EXPORT int luaopen_lupafromlua (lua_State *L)
 	check_true(L, (constructor_kwargs = Py_BuildValue("{s:O}", "state", py_capsule)) != NULL,
 			"Could not allocate dict");
 
+	Py_DECREF(py_capsule);
+
 	/* Call the lupa.LuaRuntime constructor
 	
 	   = lupa.LuaRuntime(*constructor_args, **constructor_kwargs) */
 	check_true(L, (lupa_lua_runtime_instance = PyObject_Call(lupa_lua_runtime_class, constructor_args, constructor_kwargs)) != NULL,
 			"Could not create LuaRuntime object");
+
+	Py_DECREF(lupa_lua_runtime_class);
+	Py_DECREF(constructor_args);
+	Py_DECREF(constructor_kwargs);
 
 	/* Checks that the module table is on top of stack */
 	check_true(L, lua_gettop(L) >= 1 && lua_type(L, -1) == LUA_TTABLE,
@@ -232,6 +220,8 @@ DLL_EXPORT int luaopen_lupafromlua (lua_State *L)
 	   __main__.lua = <lupa_lua_runtime_instance> */
 	check_true(L, PyObject_SetAttrString(main_module, "lua", lupa_lua_runtime_instance) == 0,
 			"Could not set LuaRuntime object in the global scope");
+
+	Py_DECREF(lupa_lua_runtime_instance);
 
 	return 1;
 }
