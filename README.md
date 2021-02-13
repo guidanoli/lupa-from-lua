@@ -113,6 +113,14 @@ Or, equivalently, by loading it in Lua and then calling `run`.
 require'test'.run()
 ```
 
+Be aware that if at least one test fails, the program will exit. If you wish to have more control over the testing, there is the following safer alternative.
+
+```lua
+local ok, err = require'test'.safe_run()
+-- On success, ok = true
+-- On failure, ok = false and err = error message
+```
+
 [Lupa]: https://github.com/scoder/lupa
 [CMake]: https://cmake.org/
 [Lua]: https://www.lua.org/

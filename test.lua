@@ -7,8 +7,9 @@ local utils = require 'tests.utils'
 local t = {}
 
 -- Run all test cases, printing a report at the end
--- If one test fails, exits with error code 1
-function t.run()
+-- If at least one test fails, returns false and an error message
+-- If no test fails, returns true
+function t.safe_run()
 	local passed = 0
 	local failed = 0
 	local tb = require("tests.main")
@@ -26,13 +27,19 @@ function t.run()
 			end
 		end
 	end
-	utils:Print("####", nil, (failed + passed) .. " tests run")
+	utils:Print("####", nil, (failed + passed) .. " test(s) run")
 	if failed > 0 then
 		utils:Print("####", nil, failed .. " failed")
-		os.exit(1)
+		return false, failed .. " test(s) failed"
 	else
 		utils:Print("####", nil, "All passed")
+		return true
 	end
+end
+
+-- Similar to t.safe_run, but asserts that all tests pass
+function t.run()
+	return assert(t.safe_run())
 end
 
 if type(arg) == "table" and arg[0] == "test.lua" then
