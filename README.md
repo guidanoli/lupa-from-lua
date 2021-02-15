@@ -28,7 +28,7 @@ sudo make install
 
 ### Building the Lua library
 
-Example with Lua 5.4.2.
+Example with Lua 5.4.2, where `xxx` is your platform.
 
 ```sh
 curl -R -O http://www.lua.org/ftp/lua-5.4.2.tar.gz
@@ -78,6 +78,12 @@ In order to install the Lupa fork, it is necessary to first uninstall any offici
 
 ```sh
 python -m pip uninstall lupa
+```
+
+Also, in order to build the Lupa fork, you should install its dependencies.
+
+```sh
+python -m pip install -r lupa/requirements.txt
 ```
 
 You may first configure a build system for your machine with CMake. You can name the build directory however you like. For the sake of generality, we'll be referecing it as `$BUILD_DIR`.

@@ -69,7 +69,6 @@ endif()
 add_custom_command(
 	OUTPUT "${LUPA_BINARY_FILE}"
 	COMMAND "${CMAKE_COMMAND}" -E rm -f ${LUPA_GENERATED_FILES} "${LUPA_BINARY_FILE}"
-	COMMAND "${Python_EXECUTABLE}" -m pip install -r requirements.txt
 	COMMAND "${Python_EXECUTABLE}" setup.py build ${LUPA_BUILD_ARGS} develop --user
 	WORKING_DIRECTORY "${LUPA_PROJECT_DIR}"
 	DEPENDS "${LUPA_SOURCE_FILES}"
