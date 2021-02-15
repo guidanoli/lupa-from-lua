@@ -50,6 +50,7 @@ jobs:
         run: |
           git clone -b "${{ matrix.pyenv_version }}" https://github.com/pyenv/pyenv.git ".cache/pyenv-${{ matrix.pyenv_version }}"
           echo "$GITHUB_WORKSPACE/.cache/pyenv-${{ matrix.pyenv_version }}/bin" >> "$GITHUB_PATH"
+          mkdir -p ".cache/pyenv-${{ matrix.pyenv_version }}/versions"
 
       - name: Cache Python
         id: cache-python
