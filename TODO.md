@@ -1,9 +1,20 @@
 # To do list
 
-* Study the implementation of garbage collection and investigate possible memory leaks
 * Study the implementation of named parameters using decorators
 * Study alternative implementations of named parameters
-* Configure continuous integration service
+
+# Doing
+
+* Study the implementation of garbage collection and investigate possible memory leaks
+
+  * There is a bug in Lupa which leads to memory leakage due to cyclic references between Lua and Python.
+    These objects are indeed collected when the LuaRuntime object in Python is collected, but until then
+    many of these cycles may be created, rendering plenty of memory space useless to the user. The great
+    problem is to detect these reference cycles in both languages since they implement garbage collection
+    quite differently, and, nonetheless, each language GC cannot "see" the full cycle.
+
+  * Python supports cyclic garbage collection, assuming container objects have special callbacks
+    and flags for traversing all the objects in it [(6)].
 
 # Done
 
@@ -40,9 +51,12 @@
 * Unload Python library when python module goes out of scope in Lua
 * Study and implement conversion of integers for Lua >= 5.3
 * Stop using bundled Lua and pass library and include paths to lupa/setup.py directly
+* Configure continuous integration service
+* Study alternative handling of number conversion between Python and Lua in case of overflow
 
 [(1)]: https://mail.python.org/pipermail/new-bugs-announce/2008-November/003322.html
 [(2)]: https://github.com/bastibe/lunatic-python/blob/master/src/pythoninlua.c#L641
 [(3)]: https://www.man7.org/linux/man-pages/man3/dlopen.3.html
 [(4)]: https://stackoverflow.com/questions/29880931/importerror-and-pyexc-systemerror-while-embedding-python-script-within-c-for-pam
 [(5)]: https://sourceforge.net/p/pam-python/code/ci/default/tree/src/pam_python.c#l2507
+[(6)]: https://docs.python.org/3/c-api/gcsupport.html

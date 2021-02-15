@@ -6,8 +6,10 @@ jobs:
   build:
     strategy:
       matrix:
-        luaVersion: ["5.1.5", "5.2.4", "5.3.6", "5.4.2"]
-        pythonVersion: ["2.7-dev", "3.5-dev", "3.6-dev", "3.7-dev", "3.8-dev", "3.9-dev"]
+        lua_version: ["5.1.5", "5.2.4", "5.3.6", "5.4.2"]
+        python_version: ["2.7-dev", "3.5-dev", "3.6-dev", "3.7-dev", "3.8-dev", "3.9-dev"]
+        pyenv_version: ["v1.2.22"]
+        cmake_version: ["3.18.5"]
     
     runs-on: ubuntu-latest
     
@@ -18,54 +20,73 @@ jobs:
       - name: Checkout recursively
         run: git submodule update --init --recursive
 
+      - name: Create cache folder
+        run: mkdir .cache
+
       - name: Cache Lua
         id: cache-lua
         uses: actions/cache@v2
         with:
-          path: lua-${{ matrix.luaVersion }}
-          key: ${{ runner.os }}-lua-${{ matrix.luaVersion }}-v2
+          path: .cache/lua-${{ matrix.lua_version }}
+          key: ${{ runner.os }}-lua-${{ matrix.lua_version }}-v2
 
       - name: Compile Lua
         if: steps.cache-lua.outputs.cache-hit != 'true'
         run: |
-          curl -R -O http://www.lua.org/ftp/lua-${{ matrix.luaVersion }}.tar.gz
-          tar zxf lua-${{ matrix.luaVersion }}.tar.gz
-          cd lua-${{ matrix.luaVersion }}
+          cd .cache
+          curl -R -O http://www.lua.org/ftp/lua-${{ matrix.lua_version }}.tar.gz
+          tar zxf lua-${{ matrix.lua_version }}.tar.gz
+          cd lua-${{ matrix.lua_version }}
           sed 's/\(^CFLAGS.*\)/\1 -fPIC/' -i src/Makefile
           make linux
 
       - name: Install Lua
-        run: |
-          cd lua-${{ matrix.luaVersion }}
-          sudo make install
+        run: sudo make install -C .cache/lua-${{ matrix.lua_version }}
 
       - name: Test Lua
         run: lua -v
 
-      - name: Setup Pyenv
+      - name: Install Pyenv
         run: |
-          git clone https://github.com/pyenv/pyenv.git ~/.pyenv
-          echo "${HOME}/.pyenv/bin" >> $GITHUB_PATH
+          git clone -b ${{ matrix.pyenv_version }} https://github.com/pyenv/pyenv.git .cache/pyenv-${{ matrix.pyenv_version }}
+          echo "$GITHUB_WORKSPACE/.cache/pyenv-${{ matrix.pyenv_version }}/bin" >> "$GITHUB_PATH"
 
       - name: Cache Python
         id: cache-python
         uses: actions/cache@v2
         with:
-          path: $(pyenv root)/versions/${{ matrix.pythonVersion }}
-          key: ${{ runner.os }}-python-${{ matrix.pythonVersion }}
+          path: $(pyenv root)/versions/${{ matrix.python_version }}
+          key: ${{ runner.os }}-python-${{ matrix.python_version }}
 
       - name: Compile and install Python
         if: steps.cache-python.outputs.cache-hit != 'true'
         run: |
           eval "$(pyenv init -)"
-          CONFIGURE_OPTS=--enable-shared pyenv install ${{ matrix.pythonVersion }}
-          pyenv global ${{ matrix.pythonVersion }}
+          CONFIGURE_OPTS=--enable-shared pyenv install ${{ matrix.python_version }}
+          pyenv global ${{ matrix.python_version }}
 
       - name: Test Python
         run: python --version
 
+      - name: Cache CMake
+        id: cache-cmake
+        uses: actions/cache@v2
+        with:
+          path: .cache/cmake-${{ matrix.cmake_version }}
+          key: ${{ runner.os }}-cmake-${{ matrix.cmake_version }}
+
+      - name: Compile CMake
+        if: steps.cache-cmake.outputs.cache-hit != 'true'
+        run: |
+          cd .cache
+          wget https://github.com/Kitware/CMake/releases/download/v${{ matrix.cmake_version }}/cmake-${{ matrix.cmake_version }}.tar.gz
+          tar -zxvf cmake-${{ matrix.cmake_version }}.tar.gz
+          cd cmake-${{ matrix.cmake_version }}
+          ./bootstrap
+          make
+
       - name: Install CMake
-        run: sudo apt install cmake -y
+        run: sudo make install -C .cache/cmake-${{ matrix.cmake_version }}
 
       - name: Test CMake
         run: cmake --version
@@ -77,4 +98,4 @@ jobs:
         run: cmake --build build
 
       - name: Test Lupafromlua
-        run: lua tests/testbench.lua
+        run: lua test.lua

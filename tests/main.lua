@@ -3,8 +3,14 @@
 -- Run from the project root directory
 -----------------------------------------------------------
 
-local framework = require "tests.framework"
+local utils = require "tests.utils"
 local python = require "tests.lupa"
+
+-----------------------------------------------------------
+-- Python imports
+-----------------------------------------------------------
+
+python.import "math"
 
 -----------------------------------------------------------
 -- Setup
@@ -13,7 +19,7 @@ local python = require "tests.lupa"
 local names = 0
 
 -- Avoids name collision in Python global scope
-local newname = function()
+local function newname()
 	local name = names
 	names = names + 1
 	return "t" .. name
@@ -22,15 +28,50 @@ end
 -- Check if current Lua version supports integers
 local hasintegers = math.tointeger ~= nil
 
+-- Set current overflow handler
+local function setoverflowhandler(f)
+	lupa_overflow_cb = f
+end
+
+-- Test the handling of overflow when trying to fit an overly
+-- big Python long into a Lua number (potentially an integer).
+-- You can either expect that an error will be raised (success=false)
+-- or that it will succeed (success=true)
+-- If it succeeds, returns the converted object
+-- If it fails, returns the error message
+local function testoverflow(success)
+	local ok, ret = pcall(python.eval, '10**500')
+	assert(ok == success, tostring(ret) .. "\n" .. debug.traceback())
+	return ret
+end
+
+-- Test garbage collection, by making sure that the
+-- amount of memory used by Lua before and after calling f
+-- stays the same (that is, all is garbage collected)
+local function testgc(f)
+	local count
+	for i = 1, 100 do
+		collectgarbage()
+		collectgarbage()
+		count = collectgarbage('count')
+		f()
+		collectgarbage()
+		collectgarbage()
+		count = collectgarbage('count') - count
+		if count == 0 then
+			return
+		end
+	end
+	error(count*1024 .. " bytes leaked\n" .. debug.traceback())
+end
+
 -----------------------------------------------------------
 -- Test cases
 -----------------------------------------------------------
 
-Testbench = {
-	name = "lupafromlua",
-}
+local Testbench = {}
 
-function Testbench:TestLuaVersion()
+function Testbench:LuaVersion()
 	local lua = python.eval("lua")
 	local lupa_lua_version = lua.lua_version
 
@@ -52,7 +93,7 @@ function Testbench:TestLuaVersion()
 	assert(semvernums[2] == lupa_lua_minor)
 end
 
-function Testbench:TestAsAttributeGetter_List()
+function Testbench:AsAttributeGetter_List()
 	local l = python.list()
 
 	assert(not pcall(function()
@@ -71,7 +112,7 @@ function Testbench:TestAsAttributeGetter_List()
 	assert(len_func() == 1)
 end
 
-function Testbench:TestAsAttributeGetter_Dict()
+function Testbench:AsAttributeGetter_Dict()
 	local d = python.dict()
 
 	assert(not pcall(function()
@@ -95,7 +136,7 @@ function Testbench:TestAsAttributeGetter_Dict()
 	assert(get_func("key1", python.none) == "value1")
 end
 
-function Testbench:TestAsAttributeGetter_Builtins()
+function Testbench:AsAttributeGetter_Builtins()
 	local builtins = python.builtins
 	-- Since builtins is a module, it does not implement the
 	-- sequence protocol, which means that by default, lupa
@@ -107,7 +148,7 @@ function Testbench:TestAsAttributeGetter_Builtins()
 	assert(python.equal(l1,l2))
 end
 
-function Testbench:TestAsItemGetter_List()
+function Testbench:AsItemGetter_List()
 	local l = python.list()
 
 	assert(not pcall(function ()
@@ -138,7 +179,7 @@ function Testbench:TestAsItemGetter_List()
 	end
 end
 
-function Testbench:TestAsItemGetter_Dict()
+function Testbench:AsItemGetter_Dict()
 	local d = python.dict()
 
 	assert(not pcall(function ()
@@ -167,7 +208,7 @@ function Testbench:TestAsItemGetter_Dict()
 	end
 end
 
-function Testbench:TestAsFunction_Eval()
+function Testbench:AsFunction_Eval()
 	local eval_asfunction = python.as_function(python.eval)
 
 	-- Even though eval is already a wrapper (userdata),
@@ -175,7 +216,7 @@ function Testbench:TestAsFunction_Eval()
 	assert(eval_asfunction("1 + 1") == 2)
 end
 
-function Testbench:TestEval()
+function Testbench:Eval()
 	local testcases = {
 		{ "1", 1 },
 		{ "1 + 1", 2 },
@@ -216,6 +257,12 @@ function Testbench:TestEval()
 		{ "True", true },
 		{ "(lambda x: x*2)(10)", 20 },
 		{ "(lambda x: x*2)([1, 2, 3])", python.list(1, 2, 3, 1, 2, 3) },
+		{ "''", "" },
+		{ "'ascii'", "ascii" },
+		{ "'ação'", "ação" },
+		{ "u''", "" },
+		{ "u'ação'", "ação" },
+		{ "'\\n\\t'", "\n\t" },
 	}
 
 	for testindex, testcase in ipairs(testcases) do
@@ -230,7 +277,7 @@ function Testbench:TestEval()
 	end
 end
 
-function Testbench:TestExecAssignment()
+function Testbench:ExecAssignment()
 	local varname = newname()
 	local value = math.random(128)
 
@@ -239,7 +286,7 @@ function Testbench:TestExecAssignment()
 	assert(python.eval(varname) == value)
 end
 
-function Testbench:TestExecCall()
+function Testbench:ExecCall()
 	local funcname = newname()
 	local varname = newname()
 	local paramname = newname()
@@ -254,18 +301,18 @@ function Testbench:TestExecCall()
 	assert(python.eval(varname) == value)
 end
 
-function Testbench:TestExecAssert()
+function Testbench:ExecAssert()
 	python.exec("assert True")
 	assert(not pcall(function()
 		python.exec("assert False")
 	end))
 end
 
-function Testbench:TestExecPass()
+function Testbench:ExecPass()
 	python.exec("pass")
 end
 
-function Testbench:TestExecAugmentedAssignment()
+function Testbench:ExecAugmentedAssignment()
 	local varname = newname()
 
 	python.exec(varname .. " = 321")
@@ -273,7 +320,7 @@ function Testbench:TestExecAugmentedAssignment()
 	assert(python.eval(varname) == 444)
 end
 
-function Testbench:TestExecDel()
+function Testbench:ExecDel()
 	local varname = newname()
 
 	python.exec(varname .. " = { 1:1 }")
@@ -282,50 +329,50 @@ function Testbench:TestExecDel()
 	assert(python.equal(python.eval(varname), python.dict()))
 end
 
-function Testbench:TestExecReturn()
+function Testbench:ExecReturn()
 	assert(not pcall(function()
 		python.exec("return")
 	end))
 end
 
-function Testbench:TestExecYield()
+function Testbench:ExecYield()
 	assert(not pcall(function()
 		python.exec("yield")
 	end))
 end
 
-function Testbench:TestExecRaise()
+function Testbench:ExecRaise()
 	assert(not pcall(function()
 		python.exec("raise RuntimeError")
 	end))
 end
 
-function Testbench:TestExecBreak()
+function Testbench:ExecBreak()
 	assert(not pcall(function()
 		python.exec("break")
 	end))
 end
 
-function Testbench:TestExecContinue()
+function Testbench:ExecContinue()
 	assert(not pcall(function()
 		python.exec("continue")
 	end))
 end
 
-function Testbench:TestExecImport()
+function Testbench:ExecImport()
 	local alias = newname()
 
 	python.exec("import lupa")
 	python.exec("from lupa import LuaRuntime as " .. alias)
 end
 
-function Testbench:TestExecGlobal()
+function Testbench:ExecGlobal()
 	local varname = newname()
 
 	python.exec("global " .. varname)
 end
 
-function Testbench:TestExecNonLocal()
+function Testbench:ExecNonLocal()
 	local varname = newname()
 
 	assert(not pcall(function()
@@ -333,7 +380,7 @@ function Testbench:TestExecNonLocal()
 	end))
 end
 
-function Testbench:TestIterList()
+function Testbench:IterList()
 	local l = python.list(1, 2, 3)
 	local i = 1
 	for li in python.iter(l) do
@@ -342,7 +389,7 @@ function Testbench:TestIterList()
 	end
 end
 
-function Testbench:TestIterDict()
+function Testbench:IterDict()
 	local d = python.dict("a", 1, "b", 2, "c", 3)
 	local t = {a=1, b=2, c=3}
 	for di in python.iter(d) do
@@ -351,7 +398,7 @@ function Testbench:TestIterDict()
 	end
 end
 
-function Testbench:TestIterClass()
+function Testbench:IterClass()
 	local classname = newname()
 
 	python.exec("class " .. classname .. ":\n" ..
@@ -370,7 +417,7 @@ function Testbench:TestIterClass()
 	end
 end
 
-function Testbench:TestNone()
+function Testbench:None()
 	assert(python.equal(python.none, nil))
 	assert(tostring(python.none) == "None")
 	assert(python.builtins.str(python.none) == "None")
@@ -404,7 +451,7 @@ function Testbench:TestNone()
 	assert(entered)
 end
 
-function Testbench:TestIterEx()
+function Testbench:IterEx()
 	local d = python.dict("a", 1, "b", 2, "c", 3)
 	local t = {a=1, b=2, c=3}
 	local d_items = python.as_attrgetter(d).items()
@@ -432,7 +479,7 @@ function Testbench:TestIterEx()
 	end
 end
 
-function Testbench:TestEnumerate()
+function Testbench:Enumerate()
 	local l, entered
 
 	l = python.list(0, 1, 2, 3)
@@ -451,9 +498,9 @@ function Testbench:TestEnumerate()
 	assert(not entered)
 end
 
-function Testbench:TestCallback()
+function Testbench:Callback()
 	local cb_called = false
-	local lua_cb = function() cb_called = true end
+	local function lua_cb() cb_called = true end
 	local python_cb = python.wrap(lua_cb)
 
 	assert(not cb_called)
@@ -461,7 +508,7 @@ function Testbench:TestCallback()
 	assert(cb_called)
 end
 
-function Testbench:TestRoundtrip()
+function Testbench:Roundtrip()
 	local testcases = {
 		nil,
 		python.none,
@@ -488,7 +535,7 @@ function Testbench:TestRoundtrip()
 	end
 end
 
-function Testbench:TestMultipleReturnValues()
+function Testbench:MultipleReturnValues()
 	local testcases = {
 		{
 			input = { "a", "b", "c" },
@@ -526,44 +573,134 @@ function Testbench:TestMultipleReturnValues()
 	
 end
 
-function Testbench:TestIntegerFromLuaToPython()
+function Testbench:NumberFromLuaToPython()
+	local eqtype = python.eval('lambda a, b: type(a) is type(eval(b))')
+	local eqvalue = python.eval('lambda a, b: a == eval(b)')
+	local isnan = python._.math.isnan
+
 	local isint = python.eval('lambda n: type(n) is int')
 	local isfloat = python.eval('lambda n: type(n) is float')
 
+	local function roundtrip(num)
+		assert(eqtype(num, tostring(num)))
+		assert(eqvalue(num, tostring(num)))
+	end
+
 	assert(isint(1))
+	assert(eqtype(1, '1'))
+	assert(eqvalue(1, '1'))
+	assert(eqvalue(1.0, '1.0'))
+	assert(eqvalue(1.0, '1'))
+	assert(eqvalue(1, '1.0'))
+
 	assert(isfloat(1.2))
+	assert(eqtype(1.2, '1.2'))
+	assert(eqvalue(1.2, '1.2'))
+
+	assert(isfloat(math.pi))
+	assert(eqtype(math.pi, 'math.pi'))
+	assert(eqvalue(math.pi, 'math.pi'))
+
+	-- According to IEEE 754, a nan value is considered not equal to any value, including itself
+	-- So we can't really compare Python and Lua nan's but we can use math.isnan from Python
+	assert(isnan(0/0))
+
+	assert(eqvalue(math.huge, 'float("inf")'))
+	assert(eqvalue(-math.huge, 'float("-inf")'))
 
 	if hasintegers then
-		-- Preserves underlying type
+		-- If Lua supports integers, the subtype is preserved
 		assert(isfloat(1.0))
+		assert(eqtype(1.0, '1.0'))
+
+		assert(isint(math.maxinteger))
+		roundtrip(math.maxinteger)
+
+		assert(isint(math.mininteger))
+		roundtrip(math.mininteger)
 	else
-		-- Merely checks for decimals
+		-- If Lua doesn't support integers, the subtype is
+		-- infered by whether the number has a decimal part or not
 		assert(isint(1.0))
+		assert(eqtype(1.0, '1'))
 	end
 end
 
-function Testbench:TestIntegerFromPythonToLua()
-	local one = python.eval('1')
-	local onef = python.eval('1.0')
-	local pi = python.eval('3.14')
+function Testbench:NumberFromPythonToLua()
+	utils:TestNumEq(python.eval('1'), 1)
+	utils:TestNumEq(python.eval('1.0'), 1.0)
+	utils:TestNumEq(python.eval('math.pi'), math.pi)
+
+	-- According to IEEE 754, a nan value is considered not equal to any value, including itself
+	-- So we can't really compare Python and Lua nan's but we can compare Python nan to itself and
+	-- except that the comparison will return false
+	local nan = python.eval('float("nan")')
+	utils:TestMathTypeEq(nan, 0/0)
+	assert(nan ~= nan, "Python nan converted to Lua is not nan")
+
+	utils:TestNumEq(python.eval('float("inf")'), 1/0)
+	utils:TestNumEq(python.eval('float("-inf")'), -1/0)
+
+	-- Make sure no overflow handler is set
+	setoverflowhandler(nil)
+
+	-- 10^500 >> 2^63 - 1 (signed 64-bit integer maximum value)
+	-- 10^500 >> 1.8*10^308 (double-precision floating-point format maximum value)
+	assert(not pcall(python.eval, '10**500'),
+		"Converting too large Python integers should throw an error")
 	
-	assert(one == 1)
-	assert(onef == 1.0)
-	assert(math.abs(pi - 3.14) < 1e-2)
-
-	if hasintegers then
-		assert(math.type(one) == 'integer')
-		assert(math.type(onef) == 'float')
-		assert(math.type(pi) == 'float')
-	end
+	-- -10^500 << 2^64 (signed 64-bit integer minimum value)
+	-- -10^500 << -1.8*10^308 (double-precision floating-point format minimum value)
+	assert(not pcall(python.eval, '-10**500'),
+		"Converting too large Python integers should throw an error")
 end
 
------------------------------------------------------------
--- Test running
------------------------------------------------------------
-
-local report = framework:RunTestbench(Testbench)
-
-if report.failed ~= 0 then
-	os.exit(1)
+function Testbench:NoHandler()
+	setoverflowhandler(nil)
+	testoverflow(false)
 end
+
+function Testbench:EmptyHandler()
+	setoverflowhandler(function() end)
+	assert(testoverflow(true) == nil)
+end
+
+function Testbench:HandlerWithLuaError()
+	setoverflowhandler(function() error() end)
+	assert(testoverflow(false))
+end
+
+function Testbench:FloatFallbackHandler()
+	local python_float = python.eval('float')
+	setoverflowhandler(function(o)
+		return python_float(o)
+	end)
+	local ok, ret = pcall(python.eval, '10**100')
+	assert(ok, ret)
+	utils:TestNumEq(ret, 1e100)
+	testoverflow(false)
+end
+
+function Testbench:GarbageCollector()
+	testgc(function() end)	
+	testgc(function() python.list() end)
+	testgc(function() local l = python.list() end)
+	testgc(function() local t = { python.list() } end)
+	testgc(function()
+		local d = python.dict()
+		d.ref = d
+	end)
+	testgc(function()
+		local t = { dict = python.dict() }
+		setmetatable(t, {__mode = "v"})
+		t.dict.ref = t
+	end)
+end
+
+function Testbench:ExceptionMessage()
+	local ok, ret = pcall(python.exec, 'raise Exception("myerrormessage")')
+	assert(not ok, "Python raise should have led to Lua error")
+	assert(ret:find("Exception: myerrormessage"), "Error message should be preserved")
+end
+
+return Testbench

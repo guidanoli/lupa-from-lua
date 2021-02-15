@@ -5,14 +5,26 @@ For this purpose, the Lupa source code had to be slightly modified in the fork t
 
 ## Dependencies
 
-* [CMake] >= 3.14
+* [CMake] >= 3.18
   * program
 * [Lua] >= 5.1
-  * program
   * [position independent static library](#building-the-lua-library)
 * [Python] 2.7 or >= 3.5
   * program
   * [dynamic library](#building-the-python-library)
+
+### Building CMake
+
+Example with CMake 3.18.5
+
+```sh
+wget https://github.com/Kitware/CMake/releases/download/v3.18.5/cmake-3.18.5.tar.gz
+tar -zxvf cmake-3.18.5.tar.gz
+cd cmake-3.18.5
+./bootstrap
+make -j $(nproc)
+sudo make install
+```
 
 ### Building the Lua library
 
@@ -23,7 +35,16 @@ curl -R -O http://www.lua.org/ftp/lua-5.4.2.tar.gz
 tar zxf lua-5.4.2.tar.gz
 cd lua-5.4.2
 sed 's/\(^CFLAGS.*\)/\1 -fPIC/' -i src/Makefile
-sudo make xxx install
+make -j $(nproc)
+sudo make install
+```
+
+Example with Lua 5.4.2, by using [luav].
+
+```sh
+luav get 5.4.2
+CFLAGS=-fPIC luav make 5.4.2 -j $(nproc)
+luav set 5.4.2
 ```
 
 ### Building the Python library
@@ -80,10 +101,24 @@ python setup.py develop --uninstall --user
 
 ## Testing
 
-Having built the project, you may run the test suite from the repository root. A report should be printed out.
+You can run the tests by passing the `test.lua` script to the Lua standalone.
 
 ```sh
-lua tests/testbench.lua
+lua test.lua
+```
+
+Or, equivalently, by loading it in Lua and then calling `run`.
+
+```lua
+require'test'.run()
+```
+
+Be aware that if at least one test fails, the program will exit. If you wish to have more control over the testing, there is the following safer alternative.
+
+```lua
+local ok, err = require'test'.safe_run()
+-- On success, ok = true
+-- On failure, ok = false and err = error message
 ```
 
 [Lupa]: https://github.com/scoder/lupa
@@ -91,3 +126,5 @@ lua tests/testbench.lua
 [Lua]: https://www.lua.org/
 [Python]: https://www.python.org/
 [pyenv]: https://github.com/pyenv/pyenv
+[luav]: https://github.com/guidanoli/luav
+
