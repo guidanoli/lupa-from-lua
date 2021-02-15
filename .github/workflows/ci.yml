@@ -44,7 +44,7 @@ jobs:
         run: sudo make install -C ".cache/lua-${{ matrix.lua_version }}"
 
       - name: Test Lua
-        run: lua -v | grep -F "${{ matrix.lua_version }}"
+        run: lua -v 2>&1 | grep -F "${{ matrix.lua_version }}"
 
       - name: Install Pyenv
         run: |
@@ -66,7 +66,7 @@ jobs:
         run: pyenv local "${{ matrix.python_version }}"
 
       - name: Test Python
-        run: pyenv exec python --version | grep -F "$(echo ${{ matrix.python_version }} | tr -cd '[0-9.]')"
+        run: pyenv exec python --version 2>&1 | grep -F "$(echo ${{ matrix.python_version }} | tr -cd '[0-9.]')"
 
       - name: Install Python packages
         run: |
@@ -94,7 +94,7 @@ jobs:
         run: sudo make install -C ".cache/cmake-${{ matrix.cmake_version }}"
 
       - name: Test CMake
-        run: cmake --version | grep -F "${{ matrix.cmake_version }}"
+        run: cmake --version 2>&1 | grep -F "${{ matrix.cmake_version }}"
 
       - name: Configure build environment
         run: cmake -B build "-DPython_EXECUTABLE:FILEPATH=$(pyenv which python)"
