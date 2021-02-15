@@ -50,7 +50,6 @@ jobs:
         run: |
           git clone -b ${{ matrix.pyenv_version }} https://github.com/pyenv/pyenv.git .cache/pyenv-${{ matrix.pyenv_version }}
           echo "$GITHUB_WORKSPACE/.cache/pyenv-${{ matrix.pyenv_version }}/bin" >> "$GITHUB_PATH"
-          echo "$GITHUB_WORKSPACE/.cache/pyenv-${{ matrix.pyenv_version }}/shims" >> "$GITHUB_PATH"
 
       - name: Cache Python
         id: cache-python
@@ -64,15 +63,15 @@ jobs:
         run: CONFIGURE_OPTS=--enable-shared pyenv install ${{ matrix.python_version }}
 
       - name: Install Python
-        run: pyenv global ${{ matrix.python_version }}
+        run: pyenv local ${{ matrix.python_version }}
 
       - name: Test Python
-        run: python --version
+        run: pyenv exec python --version
 
       - name: Install Python packages
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install -r lupa/requirements.txt
+          pyenv exec pip install --upgrade pip
+          pyenv exec pip install -r lupa/requirements.txt
 
       - name: Cache CMake
         id: cache-cmake
