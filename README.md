@@ -28,7 +28,7 @@ sudo make install
 
 ### Building the Lua library
 
-Example with Lua 5.4.2.
+Example with Lua 5.4.2, where `xxx` is your platform.
 
 ```sh
 curl -R -O http://www.lua.org/ftp/lua-5.4.2.tar.gz

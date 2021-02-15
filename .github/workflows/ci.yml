@@ -45,13 +45,7 @@ jobs:
       - name: Test Lua
         run: lua -v 2>&1 | grep -F "${{ matrix.lua_version }}"
 
-      - name: Test pyenv
-        id: test-pyenv
-        run: pyenv --version
-        continue-on-error: true
-
       - name: Install pyenv
-        if: steps.test-pyenv.outcome != 'success'
         run: |
           git clone https://github.com/pyenv/pyenv.git ~/.pyenv
           echo "$HOME/.pyenv/bin" >> "$GITHUB_PATH"
