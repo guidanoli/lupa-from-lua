@@ -53,7 +53,7 @@ jobs:
 
       - name: Inspect Pyenv
         run: |
-          ll -R ".cache/pyenv-${{ matrix.pyenv_version }}"
+          ls -alFR ".cache/pyenv-${{ matrix.pyenv_version }}"
 
       - name: Cache Python
         id: cache-python
