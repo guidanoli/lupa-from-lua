@@ -57,7 +57,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: .cache/pyenv-${{ matrix.pyenv_version }}/versions/${{ matrix.python_version }}
-          key: ${{ runner.os }}-python-${{ matrix.python_version }}-on-pyenv-${{ matrix.pyenv_version }}
+          key: ${{ runner.os }}-python-${{ matrix.python_version }}-on-pyenv-${{ matrix.pyenv_version }}-v2
 
       - name: Compile Python
         if: steps.cache-python.outputs.cache-hit != 'true'
