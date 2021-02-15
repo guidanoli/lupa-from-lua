@@ -57,7 +57,7 @@ jobs:
           echo "$HOME/.pyenv/bin" >> "$GITHUB_PATH"
 
       - name: Get pyenv root path
-        run: "PYENV_PATH=$(pyenv root)" >> "$GITHUB_ENV"
+        run: echo "PYENV_PATH=$(pyenv root)" >> "$GITHUB_ENV"
 
       - name: Cache Python
         id: cache-python
