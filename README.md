@@ -80,6 +80,12 @@ In order to install the Lupa fork, it is necessary to first uninstall any offici
 python -m pip uninstall lupa
 ```
 
+Also, in order to build the Lupa fork, you should install its dependencies.
+
+```sh
+python -m pip install -r lupa/requirements.txt
+```
+
 You may first configure a build system for your machine with CMake. You can name the build directory however you like. For the sake of generality, we'll be referecing it as `$BUILD_DIR`.
 
 ```sh
