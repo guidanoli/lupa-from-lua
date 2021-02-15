@@ -93,24 +93,25 @@ DLL_EXPORT int luaopen_lupafromlua (lua_State *L)
 #	endif
 #endif
 
-	/* Get LUPAFROMLUA table from register */
+	/* Get LUPAFROMLUA from registry */
 	lua_getfield(L, LUA_REGISTRYINDEX, LUPAFROMLUA);
 
-	/* If table doesn't exist yet */
-	if (!lua_istable(L, -1)) {
-		lua_pop(L, 1); /* remove previous result */
-		lua_newtable(L);
-		lua_pushvalue(L, -1); /* copy to be left at the top */
-		lua_setfield(L, LUA_REGISTRYINDEX, LUPAFROMLUA); /* assign new table to field */
+	/* Check if LUPAFROMLUA doesn't exist yet */
+	if (!lua_isuserdata(L, -1)) {
+		/* Create LUPAFROMLUA and add it to the registry */
+		lua_pop(L, 1);
+		lua_newuserdata(L, sizeof(char));
+		lua_pushvalue(L, -1);
+		lua_setfield(L, LUA_REGISTRYINDEX, LUPAFROMLUA);
+
+		/* Create metatable for LUPAFROMLUA */
+		lua_createtable(L, 0, 1);
+		lua_pushcfunction(L, lupafromlua_gc);
+
+		/* Set finalizer for LUPAFROMLUA */
+		lua_setfield(L, -2, "__gc");
+		lua_setmetatable(L, -2);
 	}
-
-	/* Create metatable for LUPAFROMLUA */
-	lua_createtable(L, 0, 1);
-	lua_pushcfunction(L, lupafromlua_gc);
-
-	/* Set finalizer for LUPAFROMLUA table */
-	lua_setfield(L, -2, "__gc");
-	lua_setmetatable(L, -2);
 
 	/* Initialize Python without signal handlers */
 	Py_InitializeEx(0);
