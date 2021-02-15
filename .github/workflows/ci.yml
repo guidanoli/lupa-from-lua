@@ -8,7 +8,6 @@ jobs:
       matrix:
         lua_version: ["5.1.5", "5.2.4", "5.3.6", "5.4.2"]
         python_version: ["2.7-dev", "3.5-dev", "3.6-dev", "3.7-dev", "3.8-dev", "3.9-dev"]
-        pyenv_version: ["v1.2.22"]
         cmake_version: ["3.18.5"]
     
     runs-on: ubuntu-latest
@@ -46,26 +45,30 @@ jobs:
       - name: Test Lua
         run: lua -v 2>&1 | grep -F "${{ matrix.lua_version }}"
 
-      - name: Install Pyenv
+      - name: Test pyenv
+        id: test-pyenv
+        run: pyenv --version
+        continue-on-error: true
+
+      - name: Install pyenv
+        if: steps.test-pyenv.outcome != 'success'
         run: |
-          git clone -b "${{ matrix.pyenv_version }}" https://github.com/pyenv/pyenv.git ".cache/pyenv-${{ matrix.pyenv_version }}"
-          echo "$GITHUB_WORKSPACE/.cache/pyenv-${{ matrix.pyenv_version }}/bin" >> "$GITHUB_PATH"
-          mkdir -p ".cache/pyenv-${{ matrix.pyenv_version }}/versions"
+          git clone https://github.com/pyenv/pyenv.git ~/.pyenv
+          echo "$HOME/.pyenv/bin" >> "$GITHUB_PATH"
+
+      - name: Get pyenv root path
+        run: "PYENV_PATH=$(pyenv root)" >> "$GITHUB_ENV"
 
       - name: Cache Python
         id: cache-python
         uses: actions/cache@v2
         with:
-          path: .cache/pyenv-${{ matrix.pyenv_version }}/versions/${{ matrix.python_version }}
-          key: ${{ runner.os }}-python-${{ matrix.python_version }}-on-pyenv-${{ matrix.pyenv_version }}-v3
+          path: ${{ env.PYENV_PATH }}/versions/${{ matrix.python_version }}
+          key: ${{ runner.os }}-python-${{ matrix.python_version }}
 
       - name: Compile Python
         if: steps.cache-python.outputs.cache-hit != 'true'
         run: CONFIGURE_OPTS=--enable-shared pyenv install "${{ matrix.python_version }}"
-
-      - name: Inspect Pyenv
-        run: |
-          ls -alFR ".cache/pyenv-${{ matrix.pyenv_version }}"
 
       - name: Install Python
         run: pyenv local "${{ matrix.python_version }}"
