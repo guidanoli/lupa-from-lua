@@ -50,17 +50,16 @@ jobs:
         run: |
           git clone -b "${{ matrix.pyenv_version }}" https://github.com/pyenv/pyenv.git ".cache/pyenv-${{ matrix.pyenv_version }}"
           echo "$GITHUB_WORKSPACE/.cache/pyenv-${{ matrix.pyenv_version }}/bin" >> "$GITHUB_PATH"
-          echo "PYENV_ROOT=$(pyenv root)" >> "$GITHUB_ENV"
 
       - name: Inspect Pyenv
         run: |
-          ll -R "${{ env.PYENV_ROOT }}"
+          ll -R ".cache/pyenv-${{ matrix.pyenv_version }}"
 
       - name: Cache Python
         id: cache-python
         uses: actions/cache@v2
         with:
-          path: ${{ env.PYENV_ROOT }}/versions/${{ matrix.python_version }}
+          path: .cache/pyenv-${{ matrix.pyenv_version }}/versions/${{ matrix.python_version }}
           key: ${{ runner.os }}-python-${{ matrix.python_version }}-on-pyenv-${{ matrix.pyenv_version }}
 
       - name: Compile Python
