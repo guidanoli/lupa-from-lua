@@ -14,10 +14,10 @@ static void check_true (lua_State *L, int condition, const char *fmt, ...)
 	}
 }
 
-/* key for table in the registry that when garbage collected finalizes Python */
+/* key for userdata in the registry that, when garbage collected, finalizes Python */
 static const char * const LUPAFROMLUA = "LUPAFROMLUA";
 
-/* __gc tag method for LUPAFROMLUA table: finalizes Python */
+/* __gc tag method for LUPAFROMLUA userdata: finalizes Python */
 static int lupafromlua_gc (lua_State *L)
 {
 	if (Py_IsInitialized())
