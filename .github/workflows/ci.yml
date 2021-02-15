@@ -34,21 +34,21 @@ jobs:
         if: steps.cache-lua.outputs.cache-hit != 'true'
         run: |
           cd .cache
-          curl -R -O http://www.lua.org/ftp/lua-${{ matrix.lua_version }}.tar.gz
-          tar zxf lua-${{ matrix.lua_version }}.tar.gz
-          cd lua-${{ matrix.lua_version }}
+          curl -R -O "http://www.lua.org/ftp/lua-${{ matrix.lua_version }}.tar.gz"
+          tar zxf "lua-${{ matrix.lua_version }}.tar.gz"
+          cd "lua-${{ matrix.lua_version }}"
           sed 's/\(^CFLAGS.*\)/\1 -fPIC/' -i src/Makefile
           make linux
 
       - name: Install Lua
-        run: sudo make install -C .cache/lua-${{ matrix.lua_version }}
+        run: sudo make install -C ".cache/lua-${{ matrix.lua_version }}"
 
       - name: Test Lua
-        run: lua -v
+        run: lua -v | grep -F "${{ matrix.lua_version }}"
 
       - name: Install Pyenv
         run: |
-          git clone -b ${{ matrix.pyenv_version }} https://github.com/pyenv/pyenv.git .cache/pyenv-${{ matrix.pyenv_version }}
+          git clone -b "${{ matrix.pyenv_version }}" https://github.com/pyenv/pyenv.git ".cache/pyenv-${{ matrix.pyenv_version }}"
           echo "$GITHUB_WORKSPACE/.cache/pyenv-${{ matrix.pyenv_version }}/bin" >> "$GITHUB_PATH"
 
       - name: Cache Python
@@ -60,13 +60,13 @@ jobs:
 
       - name: Compile Python
         if: steps.cache-python.outputs.cache-hit != 'true'
-        run: CONFIGURE_OPTS=--enable-shared pyenv install ${{ matrix.python_version }}
+        run: CONFIGURE_OPTS=--enable-shared pyenv install "${{ matrix.python_version }}"
 
       - name: Install Python
-        run: pyenv local ${{ matrix.python_version }}
+        run: pyenv local "${{ matrix.python_version }}"
 
       - name: Test Python
-        run: pyenv exec python --version
+        run: pyenv exec python --version | grep -F "$(echo ${{ matrix.python_version }} | tr -cd '[0-9.]')"
 
       - name: Install Python packages
         run: |
@@ -84,17 +84,17 @@ jobs:
         if: steps.cache-cmake.outputs.cache-hit != 'true'
         run: |
           cd .cache
-          wget https://github.com/Kitware/CMake/releases/download/v${{ matrix.cmake_version }}/cmake-${{ matrix.cmake_version }}.tar.gz
-          tar -zxvf cmake-${{ matrix.cmake_version }}.tar.gz
-          cd cmake-${{ matrix.cmake_version }}
+          wget "https://github.com/Kitware/CMake/releases/download/v${{ matrix.cmake_version }}/cmake-${{ matrix.cmake_version }}.tar.gz"
+          tar -zxvf "cmake-${{ matrix.cmake_version }}.tar.gz"
+          cd "cmake-${{ matrix.cmake_version }}"
           ./bootstrap
           make
 
       - name: Install CMake
-        run: sudo make install -C .cache/cmake-${{ matrix.cmake_version }}
+        run: sudo make install -C ".cache/cmake-${{ matrix.cmake_version }}"
 
       - name: Test CMake
-        run: cmake --version
+        run: cmake --version | grep -F "${{ matrix.cmake_version }}"
 
       - name: Configure build environment
         run: cmake -B build "-DPython_EXECUTABLE:FILEPATH=$(pyenv which python)"
