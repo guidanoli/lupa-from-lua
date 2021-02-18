@@ -15,6 +15,18 @@
 
   * Python supports cyclic garbage collection, assuming container objects have special callbacks
     and flags for traversing all the objects in it [(6)].
+  
+  * This problem was left open, since no good solutions could be found which would not impact the overall
+    performance of the program. The very distinct natures of Lua and Python memory management systems makes
+    it almost impossible to efficiently detect cycles and break them.
+  
+  * One key aspect is that while Lua objects can be ressurected, when you decrement the reference count of
+    a Python object down to zero, it is immediately collected. This behavious cannot be changed in Python.
+  
+  * Even though we could not address this issue, we were able to detect one which can be fixed.
+    When a userdata that references a Python object is ressurected, the Python object itself isn't, leaving a
+    dangling pointer that will likely result in bad memory access. We just need to invalidate the reference
+    and throw an error in Python whenever someone tries to access this reference.
 
 # Done
 
