@@ -70,6 +70,35 @@ local tableshavegc = false
 setmetatable({}, {__gc = function() tableshavegc = true end})
 collectgarbage()
 
+-- Tests missing reference, by making sure that an error
+-- containing 'deleted python object' is raised when calling
+-- f with a missing reference in userdata 'obj'
+-- Observation: make sure obj is not referenced anywhere else
+local function testmissingref(obj, f)
+	local t
+	if tableshavegc then
+		t = { obj = obj }
+		setmetatable(t, {__gc = function(t_) t = t_ end}) 
+	elseif newproxy then
+		local p = newproxy(true)
+		t = getmetatable(p)
+		t.obj = obj
+		t.__gc = function(p_) t = getmetatable(p_) end
+	else
+		error("tables can't have finalizers and newproxy isn't available\n" .. debug.traceback())
+	end
+
+	obj = nil
+	t = nil
+	collectgarbage()
+	assert(t ~= nil, "finalizer not called\n" .. debug.traceback())
+	assert(t.obj ~= nil, "table graph not restored" .. debug.traceback())
+	
+	local ok, ret = pcall(f, t.obj)
+	assert(not ok, "Python should raise an error when accessign missing reference\n" .. debug.traceback())
+	assert(ret:find("deleted python object"), "Error message should contain 'deleted python object'\n" .. debug.traceback())
+end
+
 -----------------------------------------------------------
 -- Test cases
 -----------------------------------------------------------
@@ -709,28 +738,14 @@ function Testbench:ExceptionMessage()
 end
 
 function Testbench:MissingReference()
-	local t
-
-	if tableshavegc then
-		t = { d = python.dict() }
-		setmetatable(t, {__gc = function(o) t = o end}) 
-	elseif newproxy then
-		local p = newproxy(true)
-		t = getmetatable(p)
-		t.d = python.dict()
-		t.__gc = function(o) t = getmetatable(o) end
-	else
-		error("Tables can't have finalizers and newproxy isn't available")
-	end
-
-	t = nil
-	collectgarbage()
-	assert(t ~= nil, "finalizer not called")
-	assert(t.d ~= nil, "table graph not restored")
-	
-	local ok, ret = pcall(function() t.d[1] = 1 end)
-	assert(not ok, "Python should raise an error when accessign missing reference")
-	assert(ret:find("deleted python object"), "Error message should contain 'deleted python object'")
+	testmissingref(python.dict(), print)                                                -- __tostring
+	testmissingref(python.dict(), function(o) print(o[1]) end)                          -- __index
+	testmissingref(python.dict(), function(o) print(python.as_itemgetter(o)[1]) end)    -- __index (itemgetter)
+	testmissingref(python.dict(), function(o) print(python.as_attrgetter(o).items) end) -- __index (attrgetter)
+	testmissingref(python.dict(), function(o) o[1] = 1 end)                             -- __newindex
+	testmissingref(python.dict(), function(o) python.as_itemgetter(o)[1] = 1 end)       -- __newindex (itemgetter)
+	testmissingref(python.wrap(print), function(o) python.as_attrgetter(o).a = 1 end)   -- __newindex (attrgetter)
+	testmissingref(python.wrap(print), function(o) o() end)                             -- __call
 end
 
 return Testbench
