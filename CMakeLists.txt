@@ -1,8 +1,6 @@
 cmake_minimum_required(VERSION 3.18)
 project(lupafromlua)
 
-option(LUPA_DEBUG_GC "Print debug information about garbage collection in Lupa" OFF)
-
 set(LUPAFROMLUA_PROJECT_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 
 # Find Lua static library
@@ -60,10 +58,6 @@ foreach(LUA_LIBRARY ${LUA_LIBRARIES})
 	string(REGEX REPLACE "^lib" "" LUA_LIBRARY_NAME "${LUA_LIBRARY_NAME}")
 	list(APPEND LUPA_BUILD_ARGS "--lua-lib" "${LUA_LIBRARY_NAME}")
 endforeach()
-
-if(LUPA_DEBUG_GC)
-	list(APPEND LUPA_BUILD_ARGS "--debug-gc")
-endif()
 
 # Build lupa
 add_custom_command(

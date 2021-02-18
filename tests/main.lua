@@ -65,6 +65,11 @@ local function testgc(f)
 	error(count*1024 .. " bytes leaked\n" .. debug.traceback())
 end
 
+-- Test if tables can have finalizers
+local tableshavegc = false
+setmetatable({}, {__gc = function() tableshavegc = true end})
+collectgarbage()
+
 -----------------------------------------------------------
 -- Test cases
 -----------------------------------------------------------
@@ -701,6 +706,31 @@ function Testbench:ExceptionMessage()
 	local ok, ret = pcall(python.exec, 'raise Exception("myerrormessage")')
 	assert(not ok, "Python raise should have led to Lua error")
 	assert(ret:find("Exception: myerrormessage"), "Error message should be preserved")
+end
+
+function Testbench:MissingReference()
+	local t
+
+	if tableshavegc then
+		t = { d = python.dict() }
+		setmetatable(t, {__gc = function(o) t = o end}) 
+	elseif newproxy then
+		local p = newproxy(true)
+		t = getmetatable(p)
+		t.d = python.dict()
+		t.__gc = function(o) t = getmetatable(o) end
+	else
+		error("Tables can't have finalizers and newproxy isn't available")
+	end
+
+	t = nil
+	collectgarbage()
+	assert(t ~= nil, "finalizer not called")
+	assert(t.d ~= nil, "table graph not restored")
+	
+	local ok, ret = pcall(function() t.d[1] = 1 end)
+	assert(not ok, "Python should raise an error when accessign missing reference")
+	assert(ret:find("deleted python object"), "Error message should contain 'deleted python object'")
 end
 
 return Testbench
