@@ -98,14 +98,16 @@ If necessary, you can tweak `$BUILD_DIR/CMakeCache.txt` to correct any path wron
 cmake --build $BUILD_DIR
 ```
 
-If you later wish to uninstall the Lupa fork, you can run the following command in the `lupa` directory.
+If you later wish to uninstall the Lupa fork, you can run the following command.
 Also, by ommitting `--uninstall`, you reinstall the module without needing to rebuild it.
 
 ```sh
-python setup.py develop --uninstall --user
+python setup.py develop --uninstall --user # in lupa/
 ```
 
 ## Testing
+
+### Lupafromlua
 
 You can run the tests by passing the `test.lua` script to the Lua standalone.
 
@@ -125,6 +127,21 @@ Be aware that if at least one test fails, the program will exit. If you wish to 
 local ok, err = require'test'.safe_run()
 -- On success, ok = true
 -- On failure, ok = false and err = error message
+```
+
+### Lupa
+
+You may also want to test lupa as a Python extension.
+
+```sh
+python setup.py test # in lupa/
+```
+
+If you wish to test for different versions of python, you should use `tox`.
+
+```sh
+python -m pip install install tox
+tox # in lupa/
 ```
 
 [Lupa]: https://github.com/scoder/lupa
