@@ -92,7 +92,7 @@ local function testmissingref(obj, f)
 	t = nil
 	collectgarbage()
 	assert(t ~= nil, "finalizer not called\n" .. debug.traceback())
-	assert(t.obj ~= nil, "table graph not restored" .. debug.traceback())
+	assert(t.obj ~= nil, "table graph not restored\n" .. debug.traceback())
 	
 	local ok, ret = pcall(f, t.obj)
 	assert(not ok, "Python should raise an error when accessign missing reference\n" .. debug.traceback())
@@ -746,6 +746,14 @@ function Testbench:MissingReference()
 	testmissingref(python.dict(), function(o) python.as_itemgetter(o)[1] = 1 end)       -- __newindex (itemgetter)
 	testmissingref(python.wrap(print), function(o) python.as_attrgetter(o).a = 1 end)   -- __newindex (attrgetter)
 	testmissingref(python.wrap(print), function(o) o() end)                             -- __call
+
+	testmissingref(python.dict(), python.builtins.print) -- reflection
+	testmissingref(python.dict(), python.iter)           -- iteration
+	testmissingref(python.dict(), python.iterex)         -- iteration (explode tuples)
+	testmissingref(python.dict(), python.enumerate)      -- iteration (with indices)
+	testmissingref(python.dict(), python.as_function)    -- cast to function
+	testmissingref(python.dict(), python.as_itemgetter)  -- item getter protocol
+	testmissingref(python.dict(), python.as_attrgetter)  -- attribute getter protocol
 end
 
 return Testbench
