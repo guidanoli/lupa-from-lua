@@ -20,23 +20,18 @@ static const char * const LUPAFROMLUA = "LUPAFROMLUA";
 /* __gc tag method for LUPAFROMLUA userdata: finalizes Python */
 static int lupafromlua_gc (lua_State *L)
 {
-#if defined(__linux__)
-	void *handle;
-#endif
+	void *handle = lua_touserdata(L, lua_upvalueindex(1));
 
 	/* Finalizes Python */
 	if (Py_IsInitialized())
 		Py_Finalize();
 
 #if defined(__linux__)
-	handle = lua_touserdata(L, lua_upvalueindex(1));
-
-	check_true(L, handle != NULL,
-			"Dynamic link handle is invalid");
-
-	/* Unlinks from Python runtime library */
-	check_true(L, dlclose(handle) == 0,
-			"Could not unlink from Python runtime library");
+	if (handle != NULL) {
+		/* Unlinks from Python runtime library */
+		check_true(L, dlclose(handle) == 0,
+				"Could not unlink from Python runtime library");
+	}
 #endif
 
 	return 0;
@@ -87,9 +82,7 @@ DLL_EXPORT int luaopen_lupafromlua (lua_State *L)
 		lupa_lua_version_major_l,
 		lupa_lua_version_minor_l;
 
-#if defined(__linux__)
-	void *handle;
-#endif
+	void *handle = NULL;
 
 #if PY_MAJOR_VERSION >= 3
 	wchar_t *argv[] = {L"<lua>", 0};
@@ -126,12 +119,8 @@ DLL_EXPORT int luaopen_lupafromlua (lua_State *L)
 
 		/* Create metatable for LUPAFROMLUA */
 		lua_createtable(L, 0, 1);
-#if defined(__linux__)
 		lua_pushlightuserdata(L, handle);
 		lua_pushcclosure(L, lupafromlua_gc, 1);
-#else
-		lua_pushcfunction(L, lupafromlua_gc);
-#endif
 
 		/* Set finalizer for LUPAFROMLUA */
 		lua_setfield(L, -2, "__gc");
