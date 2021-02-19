@@ -41,7 +41,7 @@ end
 -- If it fails, returns the error message
 local function testoverflow(success)
 	local ok, ret = pcall(python.eval, '10**500')
-	assert(ok == success, tostring(ret) .. "\n" .. debug.traceback())
+	assert(ok == success, tostring(ret))
 	return ret
 end
 
@@ -62,7 +62,7 @@ local function testgc(f)
 			return
 		end
 	end
-	error(count*1024 .. " bytes leaked\n" .. debug.traceback())
+	error(count*1024 .. " bytes leaked")
 end
 
 -- Test if tables can have finalizers
@@ -85,18 +85,18 @@ local function testmissingref(obj, f)
 		t.obj = obj
 		t.__gc = function(p_) t = getmetatable(p_) end
 	else
-		error("tables can't have finalizers and newproxy isn't available\n" .. debug.traceback())
+		error("tables can't have finalizers and newproxy isn't available")
 	end
 
 	obj = nil
 	t = nil
 	collectgarbage()
-	assert(t ~= nil, "finalizer not called\n" .. debug.traceback())
-	assert(t.obj ~= nil, "table graph not restored\n" .. debug.traceback())
+	assert(t ~= nil, "finalizer not called")
+	assert(t.obj ~= nil, "table graph not restored")
 	
 	local ok, ret = pcall(f, t.obj)
-	assert(not ok, "Python should raise an error when accessign missing reference\n" .. debug.traceback())
-	assert(ret:find("deleted python object"), "Error message should contain 'deleted python object'\n" .. debug.traceback())
+	assert(not ok, "Python should raise an error when accessign missing reference")
+	assert(ret:find("deleted python object"), "Error message should contain 'deleted python object'")
 end
 
 -----------------------------------------------------------
@@ -105,7 +105,7 @@ end
 
 local Testbench = {}
 
-function Testbench:LuaVersion()
+function Testbench.LuaVersion()
 	local lua = python.eval("lua")
 	local lupa_lua_version = lua.lua_version
 
@@ -127,7 +127,7 @@ function Testbench:LuaVersion()
 	assert(semvernums[2] == lupa_lua_minor)
 end
 
-function Testbench:AsAttributeGetter_List()
+function Testbench.AsAttributeGetter_List()
 	local l = python.list()
 
 	assert(not pcall(function()
@@ -146,7 +146,7 @@ function Testbench:AsAttributeGetter_List()
 	assert(len_func() == 1)
 end
 
-function Testbench:AsAttributeGetter_Dict()
+function Testbench.AsAttributeGetter_Dict()
 	local d = python.dict()
 
 	assert(not pcall(function()
@@ -170,7 +170,7 @@ function Testbench:AsAttributeGetter_Dict()
 	assert(get_func("key1", python.none) == "value1")
 end
 
-function Testbench:AsAttributeGetter_Builtins()
+function Testbench.AsAttributeGetter_Builtins()
 	local builtins = python.builtins
 	-- Since builtins is a module, it does not implement the
 	-- sequence protocol, which means that by default, lupa
@@ -182,7 +182,7 @@ function Testbench:AsAttributeGetter_Builtins()
 	assert(python.equal(l1,l2))
 end
 
-function Testbench:AsItemGetter_List()
+function Testbench.AsItemGetter_List()
 	local l = python.list()
 
 	assert(not pcall(function ()
@@ -213,7 +213,7 @@ function Testbench:AsItemGetter_List()
 	end
 end
 
-function Testbench:AsItemGetter_Dict()
+function Testbench.AsItemGetter_Dict()
 	local d = python.dict()
 
 	assert(not pcall(function ()
@@ -242,7 +242,7 @@ function Testbench:AsItemGetter_Dict()
 	end
 end
 
-function Testbench:AsFunction_Eval()
+function Testbench.AsFunction_Eval()
 	local eval_asfunction = python.as_function(python.eval)
 
 	-- Even though eval is already a wrapper (userdata),
@@ -250,7 +250,7 @@ function Testbench:AsFunction_Eval()
 	assert(eval_asfunction("1 + 1") == 2)
 end
 
-function Testbench:Eval()
+function Testbench.Eval()
 	local testcases = {
 		{ "1", 1 },
 		{ "1 + 1", 2 },
@@ -311,7 +311,7 @@ function Testbench:Eval()
 	end
 end
 
-function Testbench:ExecAssignment()
+function Testbench.ExecAssignment()
 	local varname = newname()
 	local value = math.random(128)
 
@@ -320,7 +320,7 @@ function Testbench:ExecAssignment()
 	assert(python.eval(varname) == value)
 end
 
-function Testbench:ExecCall()
+function Testbench.ExecCall()
 	local funcname = newname()
 	local varname = newname()
 	local paramname = newname()
@@ -335,18 +335,18 @@ function Testbench:ExecCall()
 	assert(python.eval(varname) == value)
 end
 
-function Testbench:ExecAssert()
+function Testbench.ExecAssert()
 	python.exec("assert True")
 	assert(not pcall(function()
 		python.exec("assert False")
 	end))
 end
 
-function Testbench:ExecPass()
+function Testbench.ExecPass()
 	python.exec("pass")
 end
 
-function Testbench:ExecAugmentedAssignment()
+function Testbench.ExecAugmentedAssignment()
 	local varname = newname()
 
 	python.exec(varname .. " = 321")
@@ -354,7 +354,7 @@ function Testbench:ExecAugmentedAssignment()
 	assert(python.eval(varname) == 444)
 end
 
-function Testbench:ExecDel()
+function Testbench.ExecDel()
 	local varname = newname()
 
 	python.exec(varname .. " = { 1:1 }")
@@ -363,50 +363,50 @@ function Testbench:ExecDel()
 	assert(python.equal(python.eval(varname), python.dict()))
 end
 
-function Testbench:ExecReturn()
+function Testbench.ExecReturn()
 	assert(not pcall(function()
 		python.exec("return")
 	end))
 end
 
-function Testbench:ExecYield()
+function Testbench.ExecYield()
 	assert(not pcall(function()
 		python.exec("yield")
 	end))
 end
 
-function Testbench:ExecRaise()
+function Testbench.ExecRaise()
 	assert(not pcall(function()
 		python.exec("raise RuntimeError")
 	end))
 end
 
-function Testbench:ExecBreak()
+function Testbench.ExecBreak()
 	assert(not pcall(function()
 		python.exec("break")
 	end))
 end
 
-function Testbench:ExecContinue()
+function Testbench.ExecContinue()
 	assert(not pcall(function()
 		python.exec("continue")
 	end))
 end
 
-function Testbench:ExecImport()
+function Testbench.ExecImport()
 	local alias = newname()
 
 	python.exec("import lupa")
 	python.exec("from lupa import LuaRuntime as " .. alias)
 end
 
-function Testbench:ExecGlobal()
+function Testbench.ExecGlobal()
 	local varname = newname()
 
 	python.exec("global " .. varname)
 end
 
-function Testbench:ExecNonLocal()
+function Testbench.ExecNonLocal()
 	local varname = newname()
 
 	assert(not pcall(function()
@@ -414,7 +414,7 @@ function Testbench:ExecNonLocal()
 	end))
 end
 
-function Testbench:IterList()
+function Testbench.IterList()
 	local l = python.list(1, 2, 3)
 	local i = 1
 	for li in python.iter(l) do
@@ -423,7 +423,7 @@ function Testbench:IterList()
 	end
 end
 
-function Testbench:IterDict()
+function Testbench.IterDict()
 	local d = python.dict("a", 1, "b", 2, "c", 3)
 	local t = {a=1, b=2, c=3}
 	for di in python.iter(d) do
@@ -432,7 +432,7 @@ function Testbench:IterDict()
 	end
 end
 
-function Testbench:IterClass()
+function Testbench.IterClass()
 	local classname = newname()
 
 	python.exec("class " .. classname .. ":\n" ..
@@ -451,7 +451,7 @@ function Testbench:IterClass()
 	end
 end
 
-function Testbench:None()
+function Testbench.None()
 	assert(python.equal(python.none, nil))
 	assert(tostring(python.none) == "None")
 	assert(python.builtins.str(python.none) == "None")
@@ -485,7 +485,7 @@ function Testbench:None()
 	assert(entered)
 end
 
-function Testbench:IterEx()
+function Testbench.IterEx()
 	local d = python.dict("a", 1, "b", 2, "c", 3)
 	local t = {a=1, b=2, c=3}
 	local d_items = python.as_attrgetter(d).items()
@@ -513,7 +513,7 @@ function Testbench:IterEx()
 	end
 end
 
-function Testbench:Enumerate()
+function Testbench.Enumerate()
 	local l, entered
 
 	l = python.list(0, 1, 2, 3)
@@ -532,7 +532,7 @@ function Testbench:Enumerate()
 	assert(not entered)
 end
 
-function Testbench:Callback()
+function Testbench.Callback()
 	local cb_called = false
 	local function lua_cb() cb_called = true end
 	local python_cb = python.wrap(lua_cb)
@@ -542,7 +542,7 @@ function Testbench:Callback()
 	assert(cb_called)
 end
 
-function Testbench:Roundtrip()
+function Testbench.Roundtrip()
 	local testcases = {
 		nil,
 		python.none,
@@ -569,7 +569,7 @@ function Testbench:Roundtrip()
 	end
 end
 
-function Testbench:MultipleReturnValues()
+function Testbench.MultipleReturnValues()
 	local testcases = {
 		{
 			input = { "a", "b", "c" },
@@ -607,7 +607,7 @@ function Testbench:MultipleReturnValues()
 	
 end
 
-function Testbench:NumberFromLuaToPython()
+function Testbench.NumberFromLuaToPython()
 	local eqtype = python.eval('lambda a, b: type(a) is type(eval(b))')
 	local eqvalue = python.eval('lambda a, b: a == eval(b)')
 	local isnan = python._.math.isnan
@@ -660,7 +660,7 @@ function Testbench:NumberFromLuaToPython()
 	end
 end
 
-function Testbench:NumberFromPythonToLua()
+function Testbench.NumberFromPythonToLua()
 	utils:TestNumEq(python.eval('1'), 1)
 	utils:TestNumEq(python.eval('1.0'), 1.0)
 	utils:TestNumEq(python.eval('math.pi'), math.pi)
@@ -689,22 +689,22 @@ function Testbench:NumberFromPythonToLua()
 		"Converting too large Python integers should throw an error")
 end
 
-function Testbench:NoHandler()
+function Testbench.NoHandler()
 	setoverflowhandler(nil)
 	testoverflow(false)
 end
 
-function Testbench:EmptyHandler()
+function Testbench.EmptyHandler()
 	setoverflowhandler(function() end)
 	assert(testoverflow(true) == nil)
 end
 
-function Testbench:HandlerWithLuaError()
+function Testbench.HandlerWithLuaError()
 	setoverflowhandler(function() error() end)
 	assert(testoverflow(false))
 end
 
-function Testbench:FloatFallbackHandler()
+function Testbench.FloatFallbackHandler()
 	local python_float = python.eval('float')
 	setoverflowhandler(function(o)
 		return python_float(o)
@@ -715,7 +715,7 @@ function Testbench:FloatFallbackHandler()
 	testoverflow(false)
 end
 
-function Testbench:GarbageCollector()
+function Testbench.GarbageCollector()
 	testgc(function() end)	
 	testgc(function() python.list() end)
 	testgc(function() local l = python.list() end)
@@ -731,13 +731,13 @@ function Testbench:GarbageCollector()
 	end)
 end
 
-function Testbench:ExceptionMessage()
+function Testbench.ExceptionMessage()
 	local ok, ret = pcall(python.exec, 'raise Exception("myerrormessage")')
 	assert(not ok, "Python raise should have led to Lua error")
 	assert(ret:find("Exception: myerrormessage"), "Error message should be preserved")
 end
 
-function Testbench:MissingReference()
+function Testbench.MissingReference()
 	testmissingref(python.dict(), print)                                                -- __tostring
 	testmissingref(python.dict(), function(o) print(o[1]) end)                          -- __index
 	testmissingref(python.dict(), function(o) print(python.as_itemgetter(o)[1]) end)    -- __index (itemgetter)
