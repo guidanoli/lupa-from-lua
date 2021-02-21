@@ -68,7 +68,17 @@ function Utils:SortedPairs(t)
 	for n in pairs(t) do table.insert(a, n) end
 	table.sort(a, function(a, b)
 		local ta, tb = type(a), type(b)
-		return ta < tb or ta == tb and a < b
+		if ta == tb then
+			if ta == 'string' or ta == 'number' then
+				return a < b
+			elseif ta == 'boolean' then
+				return b and not a
+			else
+				return false -- Can't compare
+			end
+		else
+			return ta < tb -- Arbitrary type order
+		end
 	end)
 	local i = 0 -- iterator variable
 	local iter = function() -- iterator function
