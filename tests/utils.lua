@@ -59,14 +59,17 @@ end
 -- Return:
 --   Iterator similar to pairs, but with sorted keys
 -- Example:
---   Utils:SortedPairs({z = 2, a = 3, f = 5}) ->
---     ('a', 3)
---     ('f', 5)
---     ('z', 2)
+--   local t = {z = 2, a = 3, f = 5}
+--   for k, v in Utils:SortedPairs(t) do
+--   	print(k, v)
+--   end
+--   --> a	3
+--       f	5
+--       z	2
 function Utils:SortedPairs(t)
-	local a = {}
-	for n in pairs(t) do table.insert(a, n) end
-	table.sort(a, function(a, b)
+	local keys = {}
+	for key in pairs(t) do table.insert(keys, key) end
+	table.sort(keys, function(a, b)
 		local ta, tb = type(a), type(b)
 		if ta == tb then
 			if ta == 'string' or ta == 'number' then
@@ -83,8 +86,9 @@ function Utils:SortedPairs(t)
 	local i = 0 -- iterator variable
 	local iter = function() -- iterator function
 		i = i + 1
-		if a[i] == nil then return nil
-		else return a[i], t[a[i]]
+		local key = keys[i]
+		if key == nil then return nil
+		else return key, t[key]
 		end
 	end
 	return iter
