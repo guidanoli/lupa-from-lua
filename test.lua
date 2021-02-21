@@ -42,7 +42,7 @@ function t.run()
 	return assert(t.safe_run())
 end
 
-if type(arg) == "table" and arg[0] == "test.lua" then
+if type(arg) == "table" and arg[0]:find("test%.lua$") then
 	t.run()
 end
 
