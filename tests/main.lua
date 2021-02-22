@@ -4,7 +4,7 @@
 -----------------------------------------------------------
 
 local utils = require "tests.utils"
-local python = require "tests.lupa"
+local python = require "tests.python"
 
 -----------------------------------------------------------
 -- Python imports
