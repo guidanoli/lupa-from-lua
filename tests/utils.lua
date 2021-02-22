@@ -115,20 +115,9 @@ end
 --   w - bar width : number of integral type
 --   p - percentage of completeness : number between 0 and 1
 -- Returns:
---   Representation of a progress bar of w
---   characters and p of completeness
+--   Representation of a progress bar of w characters and p of completeness
 function utils:ProgressBar(w, p)
-	if w < 8 then
-		local filled = math.floor(w*p)
-		local unfilled = w - filled
-		return string.rep('#', filled) .. string.rep('-', unfilled)
-	else
-		local number = string.format("%3d%%", math.floor(p * 100))
-		w = w - string.len(number) - 3
-		local filled = math.floor(w*p)
-		local unfilled = w - filled
-		return "[" .. string.rep('#', filled) .. string.rep(' ', unfilled) .. "] " .. number
-	end
+	return string.format("[%-" .. (w - 7) .. "s] %3d%%", string.rep('=', math.floor((w - 7) * p)), math.floor(p * 100))
 end
 
 -- utils:GetProgressBarCallback(w, fp) : function
@@ -142,39 +131,38 @@ end
 --   local cb = utils:GetProgressBarCallback(80, io.stderr)
 --   local avg, stddev = utils:Benchmark(f, n, cb)
 function utils:GetProgressBarCallback(w, fp)
-	local last_pb = ''
+	local last
 	return function(p)
-		local pb = self:ProgressBar(w, p)
-		if pb ~= last_pb then
-			fp:write((p == 0 and '' or '\r') .. pb .. (p == 1 and '\n' or ''))
+		local curr = math.floor(p * 100)
+		if curr ~= last then
+			local pb = self:ProgressBar(w, p)
+			fp:write('\r' .. pb .. (p == 1 and '\n' or ''))
 			fp:flush()
-			last_pb = pb
+			last = curr
 		end
 	end
 end
 
--- utils:Benchmark(f, n) : number, number
+-- utils:Benchmark(f, n, progress_cb) : number, number
 -- Arguments:
 --   f : function
 --   n - number of loops : number
---   cb - progress callback : function or nil
+--   progress_cb : function or nil
 -- Returns:
 --   Mean and standard deviation of number
 --   of seconds it takes to run f
 -- Example:
 --   utils:Benchmark(function() end, 1000000) ->
 --   5.6543300000012e-07	5.0961605401745e-07
-function utils:Benchmark(f, n, cb)
+function utils:Benchmark(f, n, progress_cb)
 	local mean = 0
 	local var = 0
-	if cb then cb(0) end
 	for i = 1, n do
 		local t = self:Time(f)
 		local newmean = (t + (i - 1) * mean) / i
-		local newvar = var + (t - mean) * (t - newmean)
-		var = newvar
+		var = var + (t - mean) * (t - newmean)
 		mean = newmean
-		if cb then cb(i/n) end
+		if progress_cb then progress_cb(i / n) end
 	end
 	return mean, math.sqrt(var / n)
 end
