@@ -2,31 +2,33 @@
 -- Utility functions
 ---------------------------------
 
-local Utils = {
-	colors = {
-		black = 30,
-		red = 31,
-		green = 32,
-		yellow = 33,
-		blue = 34,
-		magenta = 35,
-		cyan = 36,
-		white = 37,
-	}
+local utils = {}
+
+-- utils.colors : table
+-- Contains labeled ASCII color codes
+utils.colors = {
+	black = 30,
+	red = 31,
+	green = 32,
+	yellow = 33,
+	blue = 34,
+	magenta = 35,
+	cyan = 36,
+	white = 37,
 }
 
--- Utils:Pretty(obj) : string
+-- utils:Pretty(obj) : string
 -- Arguments:
 --   obj
 -- Returns:
 --   Representation of obj
 -- Example:
---   Utils:Pretty({a = 10, b = {}}) ->
+--   utils:Pretty({a = 10, b = {}}) ->
 --   {
 --       ["a"] = 10,
 --       ["b"] = {},
 --   }
-function Utils:Pretty(obj)
+function utils:Pretty(obj)
 	local function _pretty(obj, pad, visited)
 		if type(obj) == "table" then
 			if next(obj) == nil then
@@ -53,20 +55,20 @@ function Utils:Pretty(obj)
 	return _pretty(obj, "", {})
 end
 
--- Utils:SortedPairs(t) : function
+-- utils:SortedPairs(t) : function
 -- Arguments:
 --   t : table
 -- Return:
 --   Iterator similar to pairs, but with sorted keys
 -- Example:
 --   local t = {z = 2, a = 3, f = 5}
---   for k, v in Utils:SortedPairs(t) do
+--   for k, v in utils:SortedPairs(t) do
 --   	print(k, v)
 --   end
 --   --> a	3
 --       f	5
 --       z	2
-function Utils:SortedPairs(t)
+function utils:SortedPairs(t)
 	local keys = {}
 	for key in pairs(t) do table.insert(keys, key) end
 	table.sort(keys, function(a, b)
@@ -94,28 +96,28 @@ function Utils:SortedPairs(t)
 	return iter
 end
 
--- Utils:Time(f) : number
+-- utils:Time(f) : number
 -- Arguments:
 --   f : function
 -- Returns:
 --   Number of seconds it takes to call f
 -- Example:
---   Utils:Time(function() end) -> 7e-6
-function Utils:Time(f)
+--   utils:Time(function() end) -> 7e-6
+function utils:Time(f)
 	local ti = os.clock()
 	f()
 	local tf = os.clock()
 	return tf - ti
 end
 
--- Utils:ProgressBar(w, p) : string
+-- utils:ProgressBar(w, p) : string
 -- Arguments:
 --   w - bar width : number of integral type
 --   p - percentage of completeness : number between 0 and 1
 -- Returns:
 --   Representation of a progress bar of w
 --   characters and p of completeness
-function Utils:ProgressBar(w, p)
+function utils:ProgressBar(w, p)
 	if w < 8 then
 		local filled = math.floor(w*p)
 		local unfilled = w - filled
@@ -129,7 +131,7 @@ function Utils:ProgressBar(w, p)
 	end
 end
 
--- Utils:GetProgressBarCallback(w, fp) : function
+-- utils:GetProgressBarCallback(w, fp) : function
 -- Arguments:
 --   w - bar width : number of integral type
 --   fp - file pointer : file
@@ -137,9 +139,9 @@ end
 --   Callback that receives percentage of completeness
 --   and writes a progress bar of width w to fp
 -- Example:
---   local cb = Utils:GetProgressBarCallback(80, io.stderr)
---   local avg, stddev = Utils:Benchmark(f, n, cb)
-function Utils:GetProgressBarCallback(w, fp)
+--   local cb = utils:GetProgressBarCallback(80, io.stderr)
+--   local avg, stddev = utils:Benchmark(f, n, cb)
+function utils:GetProgressBarCallback(w, fp)
 	local last_pb = ''
 	return function(p)
 		local pb = self:ProgressBar(w, p)
@@ -151,7 +153,7 @@ function Utils:GetProgressBarCallback(w, fp)
 	end
 end
 
--- Utils:Benchmark(f, n) : number, number
+-- utils:Benchmark(f, n) : number, number
 -- Arguments:
 --   f : function
 --   n - number of loops : number
@@ -160,9 +162,9 @@ end
 --   Mean and standard deviation of number
 --   of seconds it takes to run f
 -- Example:
---   Utils:Benchmark(function() end, 1000000) ->
+--   utils:Benchmark(function() end, 1000000) ->
 --   5.6543300000012e-07	5.0961605401745e-07
-function Utils:Benchmark(f, n, cb)
+function utils:Benchmark(f, n, cb)
 	local mean = 0
 	local var = 0
 	if cb then cb(0) end
@@ -177,22 +179,22 @@ function Utils:Benchmark(f, n, cb)
 	return mean, math.sqrt(var / n)
 end
 
--- Utils:Print(tag, tagcolor, message)
+-- utils:Print(tag, tagcolor, message)
 -- Arguments:
 --   tag - message tag : string
 --   tagcolor - message tag color : string or nil
 --              default: no color
 --   message : str
 -- Example:
---   Utils:Print('LOG', 'yellow', 'Starting...')
-function Utils:Print(tag, tagcolor, message)
+--   utils:Print('LOG', 'yellow', 'Starting...')
+function utils:Print(tag, tagcolor, message)
 	local tagcolorcode = self.colors[tagcolor] or 0
 	print("[\27[" .. tagcolorcode .. "m " .. tag .. "\27[0m ] " .. message)
 end
 
--- Utils:TestTypeEq(a, b)
+-- utils:TestTypeEq(a, b)
 -- Asserts a and b are of the same type
-function Utils:TestTypeEq(a, b)
+function utils:TestTypeEq(a, b)
 	ta, tb = type(a), type(b)
 	assert(ta == tb,
 		tostring(a) .. " and " .. tostring(b) ..
@@ -200,11 +202,11 @@ function Utils:TestTypeEq(a, b)
 		" and " .. tb .. " respectively)")
 end
 
--- Utils:TestMathTypeEq(a, b)
+-- utils:TestMathTypeEq(a, b)
 -- Asserts a and b are of the same mathematical type
 -- Observation:
 --   If math.type is not defined, this function always succeeds
-function Utils:TestMathTypeEq(a, b)
+function utils:TestMathTypeEq(a, b)
 	if math.type then
 		ta, tb = math.type(a), math.type(b)
 		assert(ta == tb,
@@ -214,13 +216,13 @@ function Utils:TestMathTypeEq(a, b)
 	end
 end
 
--- Utils:TestNumEq(a, b)
+-- utils:TestNumEq(a, b)
 -- Asserts a and b are of the same type, mathematical type
 -- (if supported) and numerical value
-function Utils:TestNumEq(a, b)
+function utils:TestNumEq(a, b)
 	self:TestTypeEq(a, b)
 	self:TestMathTypeEq(a, b)
 	assert(a == b, tostring(a) .. " != " .. tostring(b))
 end
 
-return Utils
+return utils
