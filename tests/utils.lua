@@ -94,43 +94,6 @@ function Utils:SortedPairs(t)
 	return iter
 end
 
--- Utils:Average(t) : number
--- Arguments:
---   t : table
---   n - size of t : number or nil
--- Returns:
---   Average of numbers in array
--- Example:
---   Utils:Average({1, 2, 3}) -> 2
-function Utils:Average(t, n)
-	local avg = 0
-	n = n or #t
-	for i = 1, n do
-		avg = avg + t[i] / n
-	end
-	return avg
-end
-
--- Utils:Stddev(t) : number
--- Arguments:
---   t : table
---   n - size of t : number or nil
---   avg - average of numbers : number or nil
--- Returns:
---   Standard deviation of numbers in array
--- Example:
---   Utils:Stddev({1, 2, 3}) -> 0.81649658092773
-function Utils:Stddev(t, n, avg)
-	local var = 0
-	n = n or #t
-	avg = avg or self:Average(t, n)
-	for i = 1, n do
-		local dev = t[i] - avg
-		var = var + dev * dev / n
-	end
-	return math.sqrt(var)
-end
-
 -- Utils:Time(f) : number
 -- Arguments:
 --   f : function
@@ -194,21 +157,24 @@ end
 --   n - number of loops : number
 --   cb - progress callback : function or nil
 -- Returns:
---   Average and standard deviation of number
+--   Mean and standard deviation of number
 --   of seconds it takes to run f
 -- Example:
---   Utils:TimeStats(function() end, 1000000) ->
+--   Utils:Benchmark(function() end, 1000000) ->
 --   5.6543300000012e-07	5.0961605401745e-07
 function Utils:Benchmark(f, n, cb)
-	local t = {}
+	local mean = 0
+	local var = 0
 	if cb then cb(0) end
 	for i = 1, n do
-		t[i] = self:Time(f)
+		local t = self:Time(f)
+		local newmean = (t + (i - 1) * mean) / i
+		local newvar = var + (t - mean) * (t - newmean)
+		var = newvar
+		mean = newmean
 		if cb then cb(i/n) end
 	end
-	local avg = self:Average(t, n)
-	local stddev = self:Stddev(t, n, avg)
-	return avg, stddev
+	return mean, math.sqrt(var / n)
 end
 
 -- Utils:Print(tag, tagcolor, message)
