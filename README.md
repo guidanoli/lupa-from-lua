@@ -92,10 +92,11 @@ You may first configure a build system for your machine with CMake. You can name
 cmake -B $BUILD_DIR
 ```
 
-If necessary, you can tweak `$BUILD_DIR/CMakeCache.txt` to correct any path wrongly assumed by CMake. Having configured the project nicely, you may build the project.
+If necessary, you can tweak `$BUILD_DIR/CMakeCache.txt` to correct any path wrongly assumed by CMake.
+Having configured the project nicely, you may build the project in Release mode to ensure CMake links it with the Python release library, just like Lupa.
 
 ```sh
-cmake --build $BUILD_DIR
+cmake --build $BUILD_DIR --config Release
 ```
 
 If you later wish to uninstall the Lupa fork, you can run the following command.

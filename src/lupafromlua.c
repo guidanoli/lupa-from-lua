@@ -84,7 +84,7 @@ DLL_EXPORT int luaopen_lupafromlua (lua_State *L)
 
 	void *handle = NULL;
 
-#if PY_MAJOR_VERSION >= 3
+#ifdef IS_PY3K
 	wchar_t *argv[] = {L"<lua>", 0};
 #else
 	char *argv[] = {"<lua>", 0};
