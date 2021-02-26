@@ -622,8 +622,6 @@ function main.NumberFromLuaToPython()
 		islong = python.eval('lambda n: type(n) is long')
 		isinteger = python.eval('lambda n: type(n) is long or type(n) is int')
 	else
-		-- Since PEP 237, int and long were unified
-		-- Still, for large enough numbers, we check if they are long
 		islong = isint
 		isinteger = isint
 	end
@@ -672,14 +670,28 @@ function main.NumberFromLuaToPython()
 		assert(eqtype(1.0, '1'))
 	end
 
-	if haslong then
-		-- If Python has longs, test boundaries
-		local maxint = python._.sys.maxint
-		local minint = -maxint - 1
-		assert(isint(maxint))
-		assert(isint(minint))
-		assert(islong(maxint+1))
-		assert(islong(minint-1))
+	if haslong and hasintegers then
+		-- Test coersion between Lua and Python integers
+		setoverflowhandler(python.as_function(python.builtins.float))
+		local py_maxint = python._.sys.maxint
+		local lua_maxint = math.maxinteger
+		if lua_maxint > py_maxint then
+			-- Some Lua integers "overflow" in Python
+			-- and are converted to long integers
+			assert(math.type(py_maxint) == 'integer')
+			assert(isint(py_maxint))
+			assert(islong(py_maxint+1))
+		elseif lua_maxint < py_maxint then
+			-- Some Python integers overflow in Lua
+			-- and are converted to floats
+			assert(math.type(py_maxint) == 'float')
+			assert(isfloat(py_maxint))
+		else
+			-- Python and Lua integers wrap together
+			assert(math.type(py_maxint) == 'integer')
+			assert(isint(py_maxint))
+			assert(isint(py_maxint+1))
+		end
 	end
 end
 
@@ -723,15 +735,12 @@ function main.EmptyHandler()
 end
 
 function main.HandlerWithLuaError()
-	setoverflowhandler(function() error() end)
+	setoverflowhandler(error)
 	assert(testoverflow(false))
 end
 
 function main.FloatFallbackHandler()
-	local python_float = python.eval('float')
-	setoverflowhandler(function(o)
-		return python_float(o)
-	end)
+	setoverflowhandler(python.as_function(python.builtins.float))
 	local ok, ret = pcall(python.eval, '10**100')
 	assert(ok, ret)
 	utils:TestNumEq(ret, 1e100)
