@@ -1,15 +1,19 @@
 # Prints Python extension module files suffix
 
-from __future__ import print_function
+from __future__ import print_function, absolute_import
 from sys import exit
-from sysconfig import get_config_var
 
-# 'SO' has been deprecated and replaced by 'EXT_SUFFIX'
-# For older versions of Python, 'EXT_SUFFIX' maps to None,
-# falling back to the older 'SO'.
+ext_suffix = None
+try:
+    import importlib.machinery
+    ext_suffixes = importlib.machinery.EXTENSION_SUFFIXES
+except ImportError:
+    import imp
+    ext_suffixes = [modtype[0] for modtype in imp.get_suffixes() if modtype[2] == imp.C_EXTENSION]
 
-ext_suffix = get_config_var('EXT_SUFFIX') or \
-             get_config_var('SO')
+# Heuristic: get longest extension suffix
+
+ext_suffix = max(ext_suffixes, key=len)
 
 # If none of these configuration variables are set,
 # we can only throw an error
