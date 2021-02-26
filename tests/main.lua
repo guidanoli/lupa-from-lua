@@ -614,14 +614,18 @@ function main.NumberFromLuaToPython()
 
 	local isint = python.eval('lambda n: type(n) is int')
 	local isfloat = python.eval('lambda n: type(n) is float')
+	local haslong = pcall(python.eval, 'long') 
 	local islong
+	local isinteger
 
-	if pcall(python.eval, 'long') then
+	if haslong then
 		islong = python.eval('lambda n: type(n) is long')
+		isinteger = python.eval('lambda n: type(n) is long or type(n) is int')
 	else
 		-- Since PEP 237, int and long were unified
 		-- Still, for large enough numbers, we check if they are long
 		islong = isint
+		isinteger = isint
 	end
 
 	local function roundtrip(num)
@@ -629,7 +633,7 @@ function main.NumberFromLuaToPython()
 		assert(eqvalue(num, tostring(num)))
 	end
 
-	assert(isint(1))
+	assert(isinteger(1))
 	assert(eqtype(1, '1'))
 	assert(eqvalue(1, '1'))
 	assert(eqvalue(1.0, '1.0'))
@@ -656,16 +660,26 @@ function main.NumberFromLuaToPython()
 		assert(isfloat(1.0))
 		assert(eqtype(1.0, '1.0'))
 
-		assert(islong(math.maxinteger))
+		assert(isinteger(math.maxinteger))
 		roundtrip(math.maxinteger)
 
-		assert(islong(math.mininteger))
+		assert(isinteger(math.mininteger))
 		roundtrip(math.mininteger)
 	else
 		-- If Lua doesn't support integers, the subtype is
 		-- infered by whether the number has a decimal part or not
-		assert(isint(1.0))
+		assert(isinteger(1.0))
 		assert(eqtype(1.0, '1'))
+	end
+
+	if haslong then
+		-- If Python has longs, test boundaries
+		local maxint = python._.sys.maxint
+		local minint = -maxint - 1
+		assert(isint(maxint))
+		assert(isint(minint))
+		assert(islong(maxint+1))
+		assert(islong(minint-1))
 	end
 end
 
