@@ -608,42 +608,27 @@ function main.MultipleReturnValues()
 end
 
 function main.NumberFromLuaToPython()
-	local eqtype = python.eval('lambda a, b: type(a) is type(eval(b))')
 	local eqvalue = python.eval('lambda a, b: a == eval(b)')
+	local eqvalueself = function(o) return eqvalue(o, tostring(o)) end
 	local isnan = python._.math.isnan
-
-	local isint = python.eval('lambda n: type(n) is int')
-	local isfloat = python.eval('lambda n: type(n) is float')
-	local haslong = pcall(python.eval, 'long') 
-	local islong
 	local isinteger
-
-	if haslong then
-		islong = python.eval('lambda n: type(n) is long')
-		isinteger = python.eval('lambda n: type(n) is long or type(n) is int')
+	if pcall(python.eval, 'long') then
+		isinteger = python.eval('lambda n: isinstance(n, (int, long))')
 	else
-		islong = isint
-		isinteger = isint
+		isinteger = python.eval('lambda n: isinstance(n, int)')
 	end
-
-	local function roundtrip(num)
-		assert(eqtype(num, tostring(num)))
-		assert(eqvalue(num, tostring(num)))
-	end
+	local isfloat = python.eval('lambda n: isinstance(n, float)')
 
 	assert(isinteger(1))
-	assert(eqtype(1, '1'))
 	assert(eqvalue(1, '1'))
 	assert(eqvalue(1.0, '1.0'))
 	assert(eqvalue(1.0, '1'))
 	assert(eqvalue(1, '1.0'))
 
 	assert(isfloat(1.2))
-	assert(eqtype(1.2, '1.2'))
 	assert(eqvalue(1.2, '1.2'))
 
 	assert(isfloat(math.pi))
-	assert(eqtype(math.pi, 'math.pi'))
 	assert(eqvalue(math.pi, 'math.pi'))
 
 	-- According to IEEE 754, a nan value is considered not equal to any value, including itself
@@ -656,42 +641,16 @@ function main.NumberFromLuaToPython()
 	if hasintegers then
 		-- If Lua supports integers, the subtype is preserved
 		assert(isfloat(1.0))
-		assert(eqtype(1.0, '1.0'))
 
 		assert(isinteger(math.maxinteger))
-		roundtrip(math.maxinteger)
+		assert(eqvalueself(math.maxinteger))
 
 		assert(isinteger(math.mininteger))
-		roundtrip(math.mininteger)
+		assert(eqvalueself(math.mininteger))
 	else
 		-- If Lua doesn't support integers, the subtype is
 		-- infered by whether the number has a decimal part or not
 		assert(isinteger(1.0))
-		assert(eqtype(1.0, '1'))
-	end
-
-	if haslong and hasintegers then
-		-- Test coersion between Lua and Python integers
-		setoverflowhandler(python.as_function(python.builtins.float))
-		local py_maxint = python._.sys.maxint
-		local lua_maxint = math.maxinteger
-		if lua_maxint > py_maxint then
-			-- Some Lua integers "overflow" in Python
-			-- and are converted to long integers
-			assert(math.type(py_maxint) == 'integer')
-			assert(isint(py_maxint))
-			assert(islong(py_maxint+1))
-		elseif lua_maxint < py_maxint then
-			-- Some Python integers overflow in Lua
-			-- and are converted to floats
-			assert(math.type(py_maxint) == 'float')
-			assert(isfloat(py_maxint))
-		else
-			-- Python and Lua integers wrap together
-			assert(math.type(py_maxint) == 'integer')
-			assert(isint(py_maxint))
-			assert(isint(py_maxint+1))
-		end
 	end
 end
 
