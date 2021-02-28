@@ -122,7 +122,7 @@ end
 -- Returns:
 --   Python resolved module or submodule
 -- Example:
---   python._('matplotlib.pyplot')
+--   plt = python._['matplotlib.pyplot']
 -- Observation:
 --   Modules are cached in a weak table
 python._ = {}
