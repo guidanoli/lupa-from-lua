@@ -5,17 +5,23 @@ For this purpose, the Lupa source code had to be slightly modified in the fork t
 
 ## Dependencies
 
-* [CMake] >= 3.18
-  * program
-* [Lua] >= 5.1
-  * [position independent static library](#building-the-lua-library)
-* [Python] 2.7 or >= 3.5
-  * program
-  * [dynamic library](#building-the-python-library)
+* [CMake](#cmake) >= 3.18
+  * executable
+* [Lua](#lua) >= 5.1
+  * library
+* [Python](#python) 2.7 or >= 3.5
+  * executable
+  * library
 
-### Building CMake
+### [CMake]
 
-Example with CMake 3.18.5
+#### Windows
+
+See [CMake downloads page].
+
+#### Linux
+
+Example with CMake 3.18.5.
 
 ```sh
 wget https://github.com/Kitware/CMake/releases/download/v3.18.5/cmake-3.18.5.tar.gz
@@ -26,7 +32,13 @@ make -j $(nproc)
 sudo make install
 ```
 
-### Building the Lua library
+### [Lua]
+
+#### Windows
+
+See [LuaBinaries page on Sourceforge].
+
+#### Linux
 
 Example with Lua 5.4.2.
 
@@ -47,7 +59,13 @@ CFLAGS=-fPIC luav make 5.4.2 -j $(nproc)
 luav set 5.4.2
 ```
 
-### Building the Python library
+### [Python]
+
+#### Windows
+
+See [Python Releases for Windows].
+
+#### Linux
 
 Example with Python 3.8.4.
 
@@ -151,4 +169,6 @@ tox # in lupa/
 [Python]: https://www.python.org/
 [pyenv]: https://github.com/pyenv/pyenv
 [luav]: https://github.com/guidanoli/luav
-
+[Python Releases for Windows]: https://www.python.org/downloads/windows/
+[LuaBinaries page on Sourceforge]: https://sourceforge.net/projects/luabinaries/
+[CMake downloads page]: https://cmake.org/download/
