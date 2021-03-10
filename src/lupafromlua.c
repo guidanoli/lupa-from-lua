@@ -42,23 +42,22 @@ static long pyint_to_long (lua_State *L, PyObject *o, const char *oname)
 {
 	long l;
 
-	check_true(L,
 #ifdef IS_PY3K
-			PyLong_Check(o),
+#define PYINT_(x) PyLong_ ## x
 #else
-			PyInt_Check(o),
+#define PYINT_(x) PyInt_ ## x
 #endif
-			"Excepted %s to be of integer type", oname);
 
-	l = 
-#ifdef IS_PY3K
-		PyLong_AsLong(o);
-#else
-		PyInt_AsLong(o);
-#endif
+	check_true(L, PYINT_(Check)(o),
+			"Expected %s type to be %s. Obtained: %s",
+			oname, PYINT_(Type).tp_name, o->ob_type->tp_name);
+
+	l = PYINT_(AsLong)(o);
 
 	check_true(L, !(l == -1 && PyErr_Occurred()),
 			"Could not convert %s to a long", oname);
+
+#undef PYINT_
 
 	return l;
 }
@@ -82,6 +81,10 @@ DLL_EXPORT int luaopen_lupafromlua (lua_State *L)
 		lupa_lua_version_major_l,
 		lupa_lua_version_minor_l;
 
+	int ltype;
+
+	Py_ssize_t lupa_lua_version_len;
+
 	void *handle = NULL;
 
 #ifdef IS_PY3K
@@ -99,7 +102,7 @@ DLL_EXPORT int luaopen_lupafromlua (lua_State *L)
 
 	/* Links to Python runtime library */
 	check_true(L, (handle = dlopen(PYLIB_STR(PYTHON_LIBRT), RTLD_NOW | RTLD_GLOBAL)) != NULL,
-			"Could not link to Python runtime library");
+			"Could not link to Python runtime library (\"" PYLIB_STR(PYTHON_LIBRT) "\")");
 
 #	else
 #		error PYTHON_LIBRT must be defined when building under Linux!
@@ -113,7 +116,7 @@ DLL_EXPORT int luaopen_lupafromlua (lua_State *L)
 	if (!lua_isuserdata(L, -1)) {
 		/* Create LUPAFROMLUA and add it to the registry */
 		lua_pop(L, 1);
-		lua_newuserdata(L, sizeof(char));
+		lua_newuserdata(L, 0);
 		lua_pushvalue(L, -1);
 		lua_setfield(L, LUA_REGISTRYINDEX, LUPAFROMLUA);
 
@@ -153,7 +156,18 @@ DLL_EXPORT int luaopen_lupafromlua (lua_State *L)
 	
 	   = type(lupa.LUA_VERSION) is tuple */
 	check_true(L, PyTuple_Check(lupa_lua_version),
-			"lupa.LUA_VERSION is not a tuple");
+			"Expected lupa.LUA_VERSION type to be tuple. Obtained: %s", lupa_lua_version->ob_type->tp_name);
+
+	/* Get lua.LUA_VERSION length
+	
+	   = len(lupa.LUA_VERSION) */
+	lupa_lua_version_len = PyTuple_GET_SIZE(lupa_lua_version);
+
+	/* Make sure lupa.LUA_VERSION has at least 2 items
+	
+	   = len(lupa.LUA_VERSION) >= 2 */
+	check_true(L, lupa_lua_version_len >= 2,
+			"Expected lupa.LUA_VERSION length to be of at least 2. Obtained: %d", (int) lupa_lua_version_len);
 
 	/* Get first object from lupa.LUA_VERSION
 	
@@ -175,18 +189,18 @@ DLL_EXPORT int luaopen_lupafromlua (lua_State *L)
 
 	Py_DECREF(lupa_lua_version);
 
-	/* Make sure Lupa is using the same version of Lua */
+	/* Make sure Lupa is built the same version of Lua as the state L */
 	check_true(L, lupa_lua_version_major_l == current_lua_version_major &&
 			lupa_lua_version_minor_l == current_lua_version_minor,
-			"Lupa is using Lua %d.%d (expected %d.%d)",
-			(int) lupa_lua_version_major_l, (int) lupa_lua_version_minor_l,
-			(int) current_lua_version_major, (int) current_lua_version_minor);
+			"Expected Lua version built into Lupa to be %d.%d. Obtained: %d.%d",
+			(int) current_lua_version_major, (int) current_lua_version_minor,
+			(int) lupa_lua_version_major_l, (int) lupa_lua_version_minor_l);
 
 	/* Get LuaRuntime from lupa
 	
 	   = lupa.LuaRuntime */
 	check_true(L, (lupa_lua_runtime_class = PyObject_GetAttrString(lupa, "LuaRuntime")) != NULL,
-			"Could not get LuaRuntime from lupa");
+			"Could not get LuaRuntime from the lupa module");
 
 	Py_DECREF(lupa);
 
@@ -220,21 +234,28 @@ DLL_EXPORT int luaopen_lupafromlua (lua_State *L)
 	Py_DECREF(constructor_args);
 	Py_DECREF(constructor_kwargs);
 
+	/* Checks if there is an object on top of the stack */
+	check_true(L, lua_gettop(L) >= 1,
+			"Expected object to be on top of the stack, but it is empty");
+ 
+	/* Get the type of the object on top of the stack */
+	ltype = lua_type(L, -1);
+
 	/* Checks that the module table is on top of stack */
-	check_true(L, lua_gettop(L) >= 1 && lua_type(L, -1) == LUA_TTABLE,
-			"Missing table on top of Lua stack");
+	check_true(L, ltype == LUA_TTABLE,
+			"Expected table on top of the stack. Obtained: %s", lua_typename(L, ltype));
 
 	/* Get the Python main module
 	
 	   import __main__ */
 	check_true(L, (main_module = PyImport_AddModule("__main__")) != NULL,
-			"Missing Python main module");
+			"Could not add Python __main__ module");
 
 	/* Set LuaRuntime as lua in the Python main module global scope
 	
 	   __main__.lua = <lupa_lua_runtime_instance> */
 	check_true(L, PyObject_SetAttrString(main_module, "lua", lupa_lua_runtime_instance) == 0,
-			"Could not set LuaRuntime object in the global scope");
+			"Could not set LuaRuntime object in the global scope as 'lua'");
 
 	Py_DECREF(lupa_lua_runtime_instance);
 

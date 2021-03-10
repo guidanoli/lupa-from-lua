@@ -9,7 +9,8 @@ try:
     ext_suffixes = importlib.machinery.EXTENSION_SUFFIXES
 except ImportError:
     import imp
-    ext_suffixes = [modtype[0] for modtype in imp.get_suffixes() if modtype[2] == imp.C_EXTENSION]
+    ext_suffixes = [modtype[0] for modtype in imp.get_suffixes()
+            if modtype[2] == imp.C_EXTENSION and modtype[0].startswith('.')]
 
 # Heuristic: get longest extension suffix
 
