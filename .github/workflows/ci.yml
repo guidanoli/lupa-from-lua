@@ -10,7 +10,7 @@ jobs:
         python_version: ["2.7-dev", "3.5-dev", "3.6-dev", "3.7-dev", "3.8-dev", "3.9-dev"]
         cmake_version: ["3.18.5"]
     
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     
     steps:
       - name: Checkout
