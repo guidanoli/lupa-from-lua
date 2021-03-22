@@ -6,6 +6,31 @@
 
 * Study the implementation of named parameters using decorators
 
+  * The current implementation of named parameters envolves decorating a function or a method with
+    the unpacks_lua_table and the unpacks_lua_table_method functions, respectively. This function
+    or method will then detect if it is called with a LuaTable (Cython class wrapper for Lua tables)
+    and nothing more, and unpack its contents as positional and keyword arguments with the same
+    semantics Lua uses for distinguishing entries in a table.
+
+  * These are some advantages of this implementation:
+
+    * The function or method will unpack any Lua table, that could be even constructed literally
+      when calling it, taking full advantage of the syntactic sugar that lets the programmer to
+      omits the parentheses on a call expression.
+
+    * It's a one-time configuration scheme. Once the function or method is decorated, you don't
+      need to think about it ever again.
+
+  * These are some disadvantages of this implementation:
+
+    * There is really no *clean* way to decorate Python functions and methods while in Lua. So if
+      you're trying to call a built-in function that accepts keyword arguments, like `open`, your
+      only option is to wrap it using unpacks_lua_table, which I don't think is even feasible to
+      to do in pure Lua.
+
+    * If you're writing a class that will be used in Python you need to add this decorator to
+      every single function and method that should unpack Lua tables. That's too much bloat.
+
 # Done
 
 * Write a CMakeLists.txt that finds Lua
