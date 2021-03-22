@@ -1,32 +1,10 @@
 # To do list
 
-* Study the implementation of named parameters using decorators
 * Study alternative implementations of named parameters
 
 # Doing
 
-* Study the implementation of garbage collection and investigate possible memory leaks
-
-  * There is a bug in Lupa which leads to memory leakage due to cyclic references between Lua and Python.
-    These objects are indeed collected when the LuaRuntime object in Python is collected, but until then
-    many of these cycles may be created, rendering plenty of memory space useless to the user. The great
-    problem is to detect these reference cycles in both languages since they implement garbage collection
-    quite differently, and, nonetheless, each language GC cannot "see" the full cycle.
-
-  * Python supports cyclic garbage collection, assuming container objects have special callbacks
-    and flags for traversing all the objects in it [(6)].
-  
-  * This problem was left open, since no good solutions could be found which would not impact the overall
-    performance of the program. The very distinct natures of Lua and Python memory management systems makes
-    it almost impossible to efficiently detect cycles and break them.
-  
-  * One key aspect is that while Lua objects can be ressurected, when you decrement the reference count of
-    a Python object down to zero, it is immediately collected. This behavious cannot be changed in Python.
-  
-  * Even though we could not address this issue, we were able to detect one which can be fixed.
-    When a userdata that references a Python object is ressurected, the Python object itself isn't, leaving a
-    dangling pointer that will likely result in bad memory access. We just need to invalidate the reference
-    and throw an error in Python whenever someone tries to access this reference.
+* Study the implementation of named parameters using decorators
 
 # Done
 
@@ -65,6 +43,28 @@
 * Stop using bundled Lua and pass library and include paths to lupa/setup.py directly
 * Configure continuous integration service
 * Study alternative handling of number conversion between Python and Lua in case of overflow
+* Study the implementation of garbage collection and investigate possible memory leaks
+
+  * There is a bug in Lupa which leads to memory leakage due to cyclic references between Lua and Python.
+    These objects are indeed collected when the LuaRuntime object in Python is collected, but until then
+    many of these cycles may be created, rendering plenty of memory space useless to the user. The great
+    problem is to detect these reference cycles in both languages since they implement garbage collection
+    quite differently, and, nonetheless, each language GC cannot "see" the full cycle.
+
+  * Python supports cyclic garbage collection, assuming container objects have special callbacks
+    and flags for traversing all the objects in it [(6)].
+  
+  * This problem was left open, since no good solutions could be found which would not impact the overall
+    performance of the program. The very distinct natures of Lua and Python memory management systems makes
+    it almost impossible to efficiently detect cycles and break them.
+  
+  * One key aspect is that while Lua objects can be ressurected, when you decrement the reference count of
+    a Python object down to zero, it is immediately collected. This behavious cannot be changed in Python.
+  
+  * Even though we could not address this issue, we were able to detect one which can be fixed.
+    When a userdata that references a Python object is ressurected, the Python object itself isn't, leaving a
+    dangling pointer that will likely result in bad memory access. We just need to invalidate the reference
+    and throw an error in Python whenever someone tries to access this reference.
 
 [(1)]: https://mail.python.org/pipermail/new-bugs-announce/2008-November/003322.html
 [(2)]: https://github.com/bastibe/lunatic-python/blob/master/src/pythoninlua.c#L641
