@@ -99,6 +99,56 @@ local function testmissingref(obj, f)
 	assert(ret:find("deleted python object"), "Error message should contain 'deleted python object'")
 end
 
+-- Identity function in Python
+-- Observation: unwraps Lua tables
+local identity = python.as_namedfunction(python.eval('lambda *args, **kwargs: (args, kwargs)'))
+
+-- Compares positional and keyword arguments
+local function compareargs(args, obtained_args, kwargs, obtained_kwargs)
+	assert(python.builtins.len(obtained_args) == #args)
+	for i = 1, #args do
+		assert(obtained_args[i-1] == args[i])
+	end
+	local kwargs_len = 0
+	for k, v in pairs(kwargs) do
+		kwargs_len = kwargs_len + 1
+	end
+	assert(python.builtins.len(obtained_kwargs) == kwargs_len)
+	for k, v in pairs(kwargs) do
+		assert(obtained_kwargs[k] == v)
+	end
+end
+
+-- Tests named functions
+-- Calls the identity function with ...
+-- Asserts args and kwargs are equal to the positional
+-- and keyword arguments returned by the identity function
+local function testnamedfunction(args, kwargs, ...)
+	local ret = identity(...)
+	compareargs(args, ret[0], kwargs, ret[1])
+end
+
+local identityclassname = newname()
+
+python.exec(string.format([[
+class %s:
+	def identity(self, *args, **kwargs):
+		return args, kwargs
+]], identityclassname))
+
+local identityclass = python.eval(identityclassname)
+local identitymethod = python.as_namedmethod(identityclass.identity)
+
+-- Tests named methods
+-- Calls the identity function with ...
+-- Asserts args and kwargs are equal to the positional
+-- and keyword arguments returned by the identity function
+local function testnamedmethod(args, kwargs, ...)
+	local obj = identityclass()
+	local ret = identitymethod(obj, ...)
+	compareargs(args, ret[0], kwargs, ret[1])
+end
+
 -----------------------------------------------------------
 -- Test cases
 -----------------------------------------------------------
@@ -745,6 +795,23 @@ function main.MissingReference()
 	testmissingref(python.dict(), python.as_function)    -- cast to function
 	testmissingref(python.dict(), python.as_itemgetter)  -- item getter protocol
 	testmissingref(python.dict(), python.as_attrgetter)  -- attribute getter protocol
+end
+
+function main.NamedParameters()
+	local function test(args, kwargs, ...)
+		testnamedfunction(args, kwargs, ...)
+		testnamedmethod(args, kwargs, ...)
+	end
+
+	test({}, {}) -- calling without arguments
+	test({}, {}, {})
+	test({1}, {}, {1})
+	test({1, 2, 3}, {}, {1, 2, 3})
+	test({1, 2, 3}, {}, {[-1]=2, 1, 2, 3, [5]=1}) -- non-contiguous integer keys are ignored
+	test({1, 2, 3}, {a=1}, {1, 2, 3, a=1})
+	test({}, {a=1}, {a=1})
+	test({}, {a=1, b=2, c=3}, {a=1, b=2, c=3})
+	assert(not pcall(test, {}, {a=1, b=2, c=3}, {a=1, b=2, c=3, [{}]=3})) -- non-string keys cause errors
 end
 
 return main
