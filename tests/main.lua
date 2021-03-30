@@ -807,7 +807,7 @@ function main.NamedParameters()
 	test({}, {}, {})
 	test({1}, {}, {1})
 	test({1, 2, 3}, {}, {1, 2, 3})
-	test({1, 2, 3}, {}, {[-1]=2, 1, 2, 3, [5]=1}) -- non-contiguous integer keys are ignored
+	assert(not pcall(test, {1, 2, 3}, {}, {[-1]=2, 1, 2, 3, [5]=1})) -- non-contiguous indices cause errors
 	test({1, 2, 3}, {a=1}, {1, 2, 3, a=1})
 	test({}, {a=1}, {a=1})
 	test({}, {a=1, b=2, c=3}, {a=1, b=2, c=3})
