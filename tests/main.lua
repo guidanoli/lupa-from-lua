@@ -831,7 +831,7 @@ function main.NamedParameters()
 	assert(not pcall(test, {}, {}, {[1.2]=3}))
 	assert(not pcall(test, {}, {}, {[{}]=3}))
 	assert(not pcall(test, {}, {}, {[print]=3}))
-	assert(not pcall(test, {}, {}, {[coroutine.create(print)]=3}))
+	assert(not pcall(test, {}, {}, {[coroutine.create(function() end)]=3}))
 end
 
 return main
