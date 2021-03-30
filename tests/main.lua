@@ -602,7 +602,7 @@ function main.Roundtrip()
 		{},
 		{ "a", "b", "c" },
 		{ a=1, b=2, c=3 },
-		self,
+		main,
 		function () return 42 end,
 		coroutine.create(function () return 42 end),
 	}
@@ -803,15 +803,35 @@ function main.NamedParameters()
 		testnamedmethod(args, kwargs, ...)
 	end
 
+	local t = {}
+
 	test({}, {}) -- calling without arguments
-	test({}, {}, {})
+	test({}, {}, {}) -- calling with empty table
+	test({1}, {}, 1)
 	test({1}, {}, {1})
+	test({t, 2}, {}, t, 2)
+	test({t}, {}, {t})
+	test({t, t}, {}, {t, t})
+	test({t}, {a=t}, {t, a=t})
+	test({1, 2, 3}, {}, 1, 2, 3)
 	test({1, 2, 3}, {}, {1, 2, 3})
-	assert(not pcall(test, {1, 2, 3}, {}, {[-1]=2, 1, 2, 3, [5]=1})) -- non-contiguous indices cause errors
 	test({1, 2, 3}, {a=1}, {1, 2, 3, a=1})
 	test({}, {a=1}, {a=1})
 	test({}, {a=1, b=2, c=3}, {a=1, b=2, c=3})
-	assert(not pcall(test, {}, {a=1, b=2, c=3}, {a=1, b=2, c=3, [{}]=3})) -- non-string keys cause errors
+	test({}, {['ação']=1}, {['ação']=1})
+
+	-- non-contiguous indices cause errors
+	assert(not pcall(test, {}, {}, {[0]=5})) 
+	assert(not pcall(test, {}, {}, {[2]=-5}))
+	assert(not pcall(test, {1, 2, 3}, {}, {[-1]=2, 1, 2, 3}))
+	assert(not pcall(test, {1, 2, 3}, {}, {1, 2, 3, [5]=1}))
+
+	 -- types other than integer and string cause errors
+	assert(not pcall(test, {}, {}, {[python.none]=3}))
+	assert(not pcall(test, {}, {}, {[1.2]=3}))
+	assert(not pcall(test, {}, {}, {[{}]=3}))
+	assert(not pcall(test, {}, {}, {[print]=3}))
+	assert(not pcall(test, {}, {}, {[coroutine.create(print)]=3}))
 end
 
 return main
