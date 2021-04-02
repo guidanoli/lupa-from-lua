@@ -45,110 +45,6 @@ local function testoverflow(success)
 	return ret
 end
 
--- Test garbage collection, by making sure that the
--- amount of memory used by Lua before and after calling f
--- stays the same (that is, all is garbage collected)
-local function testgc(f)
-	local count
-	for i = 1, 100 do
-		collectgarbage()
-		collectgarbage()
-		count = collectgarbage('count')
-		f()
-		collectgarbage()
-		collectgarbage()
-		count = collectgarbage('count') - count
-		if count == 0 then
-			return
-		end
-	end
-	error(count*1024 .. " bytes leaked")
-end
-
--- Test if tables can have finalizers
-local tableshavegc = false
-setmetatable({}, {__gc = function() tableshavegc = true end})
-collectgarbage()
-
--- Tests missing reference, by making sure that an error
--- containing 'deleted python object' is raised when calling
--- f with a missing reference in userdata 'obj'
--- Observation: make sure obj is not referenced anywhere else
-local function testmissingref(obj, f)
-	local t
-	if tableshavegc then
-		t = { obj = obj }
-		setmetatable(t, {__gc = function(t_) t = t_ end}) 
-	elseif newproxy then
-		local p = newproxy(true)
-		t = getmetatable(p)
-		t.obj = obj
-		t.__gc = function(p_) t = getmetatable(p_) end
-	else
-		error("tables can't have finalizers and newproxy isn't available")
-	end
-
-	obj = nil
-	t = nil
-	collectgarbage()
-	assert(t ~= nil, "finalizer not called")
-	assert(t.obj ~= nil, "table graph not restored")
-	
-	local ok, ret = pcall(f, t.obj)
-	assert(not ok, "Python should raise an error when accessign missing reference")
-	assert(ret:find("deleted python object"), "Error message should contain 'deleted python object'")
-end
-
--- Identity function in Python
--- Observation: unwraps Lua tables
-local identity = python.as_namedfunction(python.eval('lambda *args, **kwargs: (args, kwargs)'))
-
--- Compares positional and keyword arguments
-local function compareargs(args, obtained_args, kwargs, obtained_kwargs)
-	assert(python.builtins.len(obtained_args) == #args)
-	for i = 1, #args do
-		assert(obtained_args[i-1] == args[i])
-	end
-	local kwargs_len = 0
-	for k, v in pairs(kwargs) do
-		kwargs_len = kwargs_len + 1
-	end
-	assert(python.builtins.len(obtained_kwargs) == kwargs_len)
-	for k, v in pairs(kwargs) do
-		assert(obtained_kwargs[k] == v)
-	end
-end
-
--- Tests named functions
--- Calls the identity function with ...
--- Asserts args and kwargs are equal to the positional
--- and keyword arguments returned by the identity function
-local function testnamedfunction(args, kwargs, ...)
-	local ret = identity(...)
-	compareargs(args, ret[0], kwargs, ret[1])
-end
-
-local identityclassname = newname()
-
-python.exec(string.format([[
-class %s:
-	def identity(self, *args, **kwargs):
-		return args, kwargs
-]], identityclassname))
-
-local identityclass = python.eval(identityclassname)
-local identitymethod = python.as_namedmethod(identityclass.identity)
-
--- Tests named methods
--- Calls the identity function with ...
--- Asserts args and kwargs are equal to the positional
--- and keyword arguments returned by the identity function
-local function testnamedmethod(args, kwargs, ...)
-	local obj = identityclass()
-	local ret = identitymethod(obj, ...)
-	compareargs(args, ret[0], kwargs, ret[1])
-end
-
 -----------------------------------------------------------
 -- Test cases
 -----------------------------------------------------------
@@ -757,6 +653,26 @@ function main.FloatFallbackHandler()
 end
 
 function main.GarbageCollector()
+	-- Test garbage collection, by making sure that the
+	-- amount of memory used by Lua before and after calling f
+	-- stays the same (that is, all is garbage collected)
+	local function testgc(f)
+		local count
+		for i = 1, 100 do
+			collectgarbage()
+			collectgarbage()
+			count = collectgarbage('count')
+			f()
+			collectgarbage()
+			collectgarbage()
+			count = collectgarbage('count') - count
+			if count == 0 then
+				return
+			end
+		end
+		error(count*1024 .. " bytes leaked")
+	end
+
 	testgc(function() end)	
 	testgc(function() python.list() end)
 	testgc(function() local l = python.list() end)
@@ -779,6 +695,40 @@ function main.ExceptionMessage()
 end
 
 function main.MissingReference()
+	-- Test if tables can have finalizers
+	local tableshavegc = false
+	setmetatable({}, {__gc = function() tableshavegc = true end})
+	collectgarbage()
+
+	-- Tests missing reference, by making sure that an error
+	-- containing 'deleted python object' is raised when calling
+	-- f with a missing reference in userdata 'obj'
+	-- Observation: make sure obj is not referenced anywhere else
+	local function testmissingref(obj, f)
+		local t
+		if tableshavegc then
+			t = { obj = obj }
+			setmetatable(t, {__gc = function(t_) t = t_ end}) 
+		elseif newproxy then
+			local p = newproxy(true)
+			t = getmetatable(p)
+			t.obj = obj
+			t.__gc = function(p_) t = getmetatable(p_) end
+		else
+			error("tables can't have finalizers and newproxy isn't available")
+		end
+
+		obj = nil
+		t = nil
+		collectgarbage()
+		assert(t ~= nil, "finalizer not called")
+		assert(t.obj ~= nil, "table graph not restored")
+		
+		local ok, ret = pcall(f, t.obj)
+		assert(not ok, "Python should raise an error when accessign missing reference")
+		assert(ret:find("deleted python object"), "Error message should contain 'deleted python object'")
+	end
+
 	testmissingref(python.dict(), print)                                                -- __tostring
 	testmissingref(python.dict(), function(o) print(o[1]) end)                          -- __index
 	testmissingref(python.dict(), function(o) print(python.as_itemgetter(o)[1]) end)    -- __index (itemgetter)
@@ -797,41 +747,134 @@ function main.MissingReference()
 	testmissingref(python.dict(), python.as_attrgetter)  -- attribute getter protocol
 end
 
-function main.NamedParameters()
-	local function test(args, kwargs, ...)
-		testnamedfunction(args, kwargs, ...)
-		testnamedmethod(args, kwargs, ...)
+function main.NamedFunctions()
+	-- Identity function in Python
+	local identity = python.as_namedfunction(python.eval('lambda *args, **kwargs: (args, kwargs)'))
+
+	-- Compares positional and keyword arguments
+	local function compareargs(args, obtained_args, kwargs, obtained_kwargs)
+		assert(python.builtins.len(obtained_args) == #args)
+		for i = 1, #args do
+			assert(obtained_args[i-1] == args[i])
+		end
+		local kwargs_len = 0
+		for k, v in pairs(kwargs) do
+			kwargs_len = kwargs_len + 1
+		end
+		assert(python.builtins.len(obtained_kwargs) == kwargs_len)
+		for k, v in pairs(kwargs) do
+			assert(obtained_kwargs[k] == v)
+		end
 	end
 
+	-- Tests named functions
+	-- Calls the identity function with ...
+	-- Asserts args and kwargs are equal to the positional
+	-- and keyword arguments returned by the identity function
+	local function testnamedfunction(args, kwargs, ...)
+		local ret = identity(...)
+		compareargs(args, ret[0], kwargs, ret[1])
+	end
 	local t = {}
 
-	test({}, {}) -- calling without arguments
-	test({}, {}, {}) -- calling with empty table
-	test({1}, {}, 1)
-	test({1}, {}, {1})
-	test({t, 2}, {}, t, 2)
-	test({t}, {}, {t})
-	test({t, t}, {}, {t, t})
-	test({t}, {a=t}, {t, a=t})
-	test({1, 2, 3}, {}, 1, 2, 3)
-	test({1, 2, 3}, {}, {1, 2, 3})
-	test({1, 2, 3}, {a=1}, {1, 2, 3, a=1})
-	test({}, {a=1}, {a=1})
-	test({}, {a=1, b=2, c=3}, {a=1, b=2, c=3})
-	test({}, {['ação']=1}, {['ação']=1})
+	testnamedfunction({}, {}) -- calling without arguments
+	testnamedfunction({}, {}, {}) -- calling with empty table
+	testnamedfunction({1}, {}, 1)
+	testnamedfunction({1}, {}, {1})
+	testnamedfunction({t, 2}, {}, t, 2)
+	testnamedfunction({t}, {}, {t})
+	testnamedfunction({t, t}, {}, {t, t})
+	testnamedfunction({t}, {a=t}, {t, a=t})
+	testnamedfunction({1, 2, 3}, {}, 1, 2, 3)
+	testnamedfunction({1, 2, 3}, {}, {1, 2, 3})
+	testnamedfunction({1, 2, 3}, {a=1}, {1, 2, 3, a=1})
+	testnamedfunction({}, {a=1}, {a=1})
+	testnamedfunction({}, {a=1, b=2, c=3}, {a=1, b=2, c=3})
+	testnamedfunction({}, {['ação']=1}, {['ação']=1})
 
 	-- non-contiguous indices cause errors
-	assert(not pcall(test, {}, {}, {[0]=5})) 
-	assert(not pcall(test, {}, {}, {[2]=-5}))
-	assert(not pcall(test, {1, 2, 3}, {}, {[-1]=2, 1, 2, 3}))
-	assert(not pcall(test, {1, 2, 3}, {}, {1, 2, 3, [5]=1}))
+	assert(not pcall(testnamedfunction, {}, {}, {[0]=5})) 
+	assert(not pcall(testnamedfunction, {}, {}, {[2]=-5}))
+	assert(not pcall(testnamedfunction, {1, 2, 3}, {}, {[-1]=2, 1, 2, 3}))
+	assert(not pcall(testnamedfunction, {1, 2, 3}, {}, {1, 2, 3, [5]=1}))
 
 	 -- types other than integer and string cause errors
-	assert(not pcall(test, {}, {}, {[python.none]=3}))
-	assert(not pcall(test, {}, {}, {[1.2]=3}))
-	assert(not pcall(test, {}, {}, {[{}]=3}))
-	assert(not pcall(test, {}, {}, {[print]=3}))
-	assert(not pcall(test, {}, {}, {[coroutine.create(function() end)]=3}))
+	assert(not pcall(testnamedfunction, {}, {}, {[python.none]=3}))
+	assert(not pcall(testnamedfunction, {}, {}, {[1.2]=3}))
+	assert(not pcall(testnamedfunction, {}, {}, {[{}]=3}))
+	assert(not pcall(testnamedfunction, {}, {}, {[print]=3}))
+	assert(not pcall(testnamedfunction, {}, {}, {[coroutine.create(function() end)]=3}))
+end
+
+function main.LuaTableIterable()
+	-- Tests table as iterable in Python
+	-- Calls python.builtins.dict with t
+	-- and checks if dictionary matches table
+	local function testtableiterable(t)
+		d = python.builtins.dict(t)
+		dsize = 0
+		for key in python.iter(d) do
+			dsize = dsize + 1
+		end
+		tsize = 0
+		for key in pairs(t) do
+			tsize = tsize + 1
+		end
+		assert(dsize == tsize)
+		for key, tvalue in pairs(t) do
+			dvalue = d[key]
+			assert(dvalue == tvalue)
+		end
+	end
+
+	testtableiterable{}
+	testtableiterable{1}
+	testtableiterable{1, 2, 3}
+	testtableiterable{a=1}
+	testtableiterable{a=1, b=2, c=3}
+	testtableiterable{a=1, 1}
+	testtableiterable{a=1, b=2, c=3, 1}
+	testtableiterable{a=1, 1, 2, 3}
+	testtableiterable{a=1, b=2, c=3, 1, 2, 3}
+	testtableiterable{["with spaces"]=10}
+	testtableiterable{[""]=10}
+	testtableiterable{[1.2]=10}
+	-- testtableiterable{[{}]=10} FIXME
+	-- testtableiterable{[function() end]=10} FIXME
+	-- testtableiterable{[coroutine.create(function() end)]=10} FIXME
+end
+
+function main.KeywordArguments()
+	-- Identity function
+	local identity = python.eval("lambda *args, **kwargs: (args, kwargs)")
+
+	-- Tests keyword arguments
+	-- Calls python.kwargs with t
+	-- and checks if arguments match table
+	local function testkwargs(t)
+		tuple = identity(python.kwargs(t))
+		args = tuple[0]
+		kwargs = tuple[1]
+		assert(python.builtins.len(args) == 0)
+		for key, value in pairs(t) do
+			assert(kwargs[key] == value)
+		end
+	end
+
+	testkwargs{}
+	assert(not pcall(testkwargs, {1}))
+	assert(not pcall(testkwargs, {1, 2, 3}))
+	testkwargs{a=1}
+	testkwargs{a=1, b=2, c=3}
+	assert(not pcall(testkwargs, {a=1, 1}))
+	assert(not pcall(testkwargs, {a=1, b=2, c=3, 1}))
+	assert(not pcall(testkwargs, {a=1, 1, 2, 3}))
+	assert(not pcall(testkwargs, {a=1, b=2, c=3, 1, 2, 3}))
+	testkwargs{["with spaces"]=10}
+	testkwargs{[""]=10}
+	assert(not pcall(testkwargs, {[{}]=10}))
+	assert(not pcall(testkwargs, {[function() end]=10}))
+	assert(not pcall(testkwargs, {[coroutine.create(function() end)]=10}))
 end
 
 return main
