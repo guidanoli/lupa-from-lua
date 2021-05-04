@@ -1,5 +1,7 @@
 # Lupa from Lua
 
+<img align="right" width="200" src="logo.png">
+
 Currently, [Lupa] is a Python extension module which can only be imported from Python. This project intends to port this library to Lua in the form of a C library, allowing Lua to interact with Python.
 For this purpose, the Lupa source code had to be slightly modified in the fork that resides in this repository.
 
