@@ -28,11 +28,6 @@ end
 -- Check if current Lua version supports integers
 local hasintegers = math.tointeger ~= nil
 
--- Set current overflow handler
-local function setoverflowhandler(f)
-	lupa_overflow_cb = f
-end
-
 -- Test the handling of overflow when trying to fit an overly
 -- big Python long into a Lua number (potentially an integer).
 -- You can either expect that an error will be raised (success=false)
@@ -616,7 +611,7 @@ function main.NumberFromPythonToLua()
 	utils:TestNumEq(python.eval('float("-inf")'), -1/0)
 
 	-- Make sure no overflow handler is set
-	setoverflowhandler(nil)
+	python.set_overflow_handler(nil)
 
 	-- 10^500 >> 2^63 - 1 (signed 64-bit integer maximum value)
 	-- 10^500 >> 1.8*10^308 (double-precision floating-point format maximum value)
@@ -630,22 +625,22 @@ function main.NumberFromPythonToLua()
 end
 
 function main.NoHandler()
-	setoverflowhandler(nil)
+	python.set_overflow_handler(nil)
 	testoverflow(false)
 end
 
 function main.EmptyHandler()
-	setoverflowhandler(function() end)
+	python.set_overflow_handler(function() end)
 	assert(testoverflow(true) == nil)
 end
 
 function main.HandlerWithLuaError()
-	setoverflowhandler(error)
+	python.set_overflow_handler(error)
 	assert(testoverflow(false))
 end
 
 function main.FloatFallbackHandler()
-	setoverflowhandler(python.as_function(python.builtins.float))
+	python.set_overflow_handler(python.builtins.float)
 	local ok, ret = pcall(python.eval, '10**100')
 	assert(ok, ret)
 	utils:TestNumEq(ret, 1e100)
@@ -747,65 +742,6 @@ function main.MissingReference()
 	testmissingref(python.dict(), python.as_attrgetter)  -- attribute getter protocol
 end
 
-function main.NamedFunctions()
-	-- Identity function in Python
-	local identity = python.as_namedfunction(python.eval('lambda *args, **kwargs: (args, kwargs)'))
-
-	-- Compares positional and keyword arguments
-	local function compareargs(args, obtained_args, kwargs, obtained_kwargs)
-		assert(python.builtins.len(obtained_args) == #args)
-		for i = 1, #args do
-			assert(obtained_args[i-1] == args[i])
-		end
-		local kwargs_len = 0
-		for k, v in pairs(kwargs) do
-			kwargs_len = kwargs_len + 1
-		end
-		assert(python.builtins.len(obtained_kwargs) == kwargs_len)
-		for k, v in pairs(kwargs) do
-			assert(obtained_kwargs[k] == v)
-		end
-	end
-
-	-- Tests named functions
-	-- Calls the identity function with ...
-	-- Asserts args and kwargs are equal to the positional
-	-- and keyword arguments returned by the identity function
-	local function testnamedfunction(args, kwargs, ...)
-		local ret = identity(...)
-		compareargs(args, ret[0], kwargs, ret[1])
-	end
-	local t = {}
-
-	testnamedfunction({}, {}) -- calling without arguments
-	testnamedfunction({}, {}, {}) -- calling with empty table
-	testnamedfunction({1}, {}, 1)
-	testnamedfunction({1}, {}, {1})
-	testnamedfunction({t, 2}, {}, t, 2)
-	testnamedfunction({t}, {}, {t})
-	testnamedfunction({t, t}, {}, {t, t})
-	testnamedfunction({t}, {a=t}, {t, a=t})
-	testnamedfunction({1, 2, 3}, {}, 1, 2, 3)
-	testnamedfunction({1, 2, 3}, {}, {1, 2, 3})
-	testnamedfunction({1, 2, 3}, {a=1}, {1, 2, 3, a=1})
-	testnamedfunction({}, {a=1}, {a=1})
-	testnamedfunction({}, {a=1, b=2, c=3}, {a=1, b=2, c=3})
-	testnamedfunction({}, {['ação']=1}, {['ação']=1})
-
-	-- non-contiguous indices cause errors
-	assert(not pcall(testnamedfunction, {}, {}, {[0]=5})) 
-	assert(not pcall(testnamedfunction, {}, {}, {[2]=-5}))
-	assert(not pcall(testnamedfunction, {1, 2, 3}, {}, {[-1]=2, 1, 2, 3}))
-	assert(not pcall(testnamedfunction, {1, 2, 3}, {}, {1, 2, 3, [5]=1}))
-
-	 -- types other than integer and string cause errors
-	assert(not pcall(testnamedfunction, {}, {}, {[python.none]=3}))
-	assert(not pcall(testnamedfunction, {}, {}, {[1.2]=3}))
-	assert(not pcall(testnamedfunction, {}, {}, {[{}]=3}))
-	assert(not pcall(testnamedfunction, {}, {}, {[print]=3}))
-	assert(not pcall(testnamedfunction, {}, {}, {[coroutine.create(function() end)]=3}))
-end
-
 function main.LuaTableIterable()
 	-- Tests table as iterable in Python
 	-- Calls python.builtins.dict with t
@@ -844,37 +780,52 @@ function main.LuaTableIterable()
 	-- testtableiterable{[coroutine.create(function() end)]=10} FIXME
 end
 
-function main.KeywordArguments()
+function main.PythonArguments()
 	-- Identity function
 	local identity = python.eval("lambda *args, **kwargs: (args, kwargs)")
 
-	-- Tests keyword arguments
-	-- Calls python.kwargs with t
-	-- and checks if arguments match table
-	local function testkwargs(t)
-		tuple = identity(python.kwargs(t))
-		args = tuple[0]
-		kwargs = tuple[1]
-		assert(python.builtins.len(args) == 0)
-		for key, value in pairs(t) do
+	-- Tests Python arguments
+	-- Calls the identity function with ...
+	-- and checks if args and kwargs match
+	local function testpyargs(args, kwargs, ...)
+		local ret = identity(...)
+		local retargs = ret[0]
+		local retkwargs = ret[1]
+		assert(#args == python.builtins.len(retargs))
+		for i, arg in ipairs(args) do
+			assert(retargs[i-1] == arg)
+		end
+		for key, value in pairs(kwargs) do
+			assert(retkwargs[key] == value)
+		end
+		local items = python.as_attrgetter(retkwargs).items()
+		for key, value in python.iterex(items) do
 			assert(kwargs[key] == value)
 		end
 	end
 
-	testkwargs{}
-	assert(not pcall(testkwargs, {1}))
-	assert(not pcall(testkwargs, {1, 2, 3}))
-	testkwargs{a=1}
-	testkwargs{a=1, b=2, c=3}
-	assert(not pcall(testkwargs, {a=1, 1}))
-	assert(not pcall(testkwargs, {a=1, b=2, c=3, 1}))
-	assert(not pcall(testkwargs, {a=1, 1, 2, 3}))
-	assert(not pcall(testkwargs, {a=1, b=2, c=3, 1, 2, 3}))
-	testkwargs{["with spaces"]=10}
-	testkwargs{[""]=10}
-	assert(not pcall(testkwargs, {[{}]=10}))
-	assert(not pcall(testkwargs, {[function() end]=10}))
-	assert(not pcall(testkwargs, {[coroutine.create(function() end)]=10}))
+	-- Tests testpyargs error message against regex
+	local function testpyargserror(regex, ...)
+		local ok, ret = pcall(python.args, ...)
+		assert(not ok)
+		assert(type(ret) == 'string')
+		assert(ret:find(regex))
+	end
+
+	testpyargs({}, {})
+	testpyargs({}, {}, python.args{})
+	testpyargserror("table expected, got no value")
+	testpyargserror("table expected, got number", 1)
+	testpyargserror("table index out of range", {[3]=7})
+	testpyargserror("table key is neither an integer nor a string", {[{}]=7})
+	testpyargs({1}, {}, python.args{1})
+	testpyargs({1, 2, 3}, {}, python.args{1, 2, 3})
+	testpyargs({}, {a=1}, python.args{a=1})
+	testpyargs({}, {a=1, b=2, c=3}, python.args{a=1, b=2, c=3})
+	testpyargs({1}, {a=1}, python.args{a=1, 1})
+	testpyargs({1}, {a=1, b=2, c=3}, python.args{a=1, b=2, c=3, 1})
+	testpyargs({1, 2, 3}, {a=1}, python.args{a=1, 1, 2, 3})
+	testpyargs({1, 2, 3}, {a=1, b=2, c=3}, python.args{a=1, b=2, c=3, 1, 2, 3})
 end
 
 return main

@@ -43,13 +43,13 @@ file(GLOB_RECURSE LUPA_GENERATED_FILES
 	"${LUPA_SOURCE_DIR}/*.c")
 
 # Lua include directory
-set(LUPA_BUILD_ARGS "--lua-I" "${LUA_INCLUDE_DIR}")
+set(LUPA_BUILD_ARGS "--lua-includes" "${LUA_INCLUDE_DIR}")
 
 # Lua library file
 foreach(LUA_LIBRARY ${LUA_LIBRARIES})
 	get_filename_component(LUA_LIBRARY_NAME ${LUA_LIBRARY} NAME_WE)
 	if(LUA_LIBRARY_NAME MATCHES lua)
-		list(APPEND LUPA_BUILD_ARGS "--lua-l" "${LUA_LIBRARY}")
+		list(APPEND LUPA_BUILD_ARGS "--lua-lib" "${LUA_LIBRARY}")
 		break()
 	endif()
 endforeach()
