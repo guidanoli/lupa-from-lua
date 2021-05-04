@@ -1,35 +1,6 @@
 # To do list
 
-* Study alternative implementations of named parameters
-
 # Doing
-
-* Study the implementation of named parameters using decorators
-
-  * The current implementation of named parameters envolves decorating a function or a method with
-    the `unpacks_lua_table` and the `unpacks_lua_table_method` functions, respectively. This function
-    or method will then detect if it is called with a `LuaTable` (Cython class wrapper for Lua tables)
-    and nothing more, and unpack its contents as positional and keyword arguments with the same
-    semantics Lua uses for distinguishing entries in a table.
-
-  * These are some advantages of this implementation:
-
-    * The function or method will unpack any Lua table, that could be even constructed literally
-      when calling it, taking full advantage of the syntactic sugar that lets the programmer to
-      omits the parentheses on a call expression.
-
-    * It's a one-time configuration scheme. Once the function or method is decorated, you don't
-      need to think about it ever again.
-
-  * These are some disadvantages of this implementation:
-
-    * There is really no *clean* way to decorate Python functions and methods while in Lua. So if
-      you're trying to call a built-in function that accepts keyword arguments, like `open`, your
-      only option is to wrap it using `unpacks_lua_table`, which I don't think is even feasible to
-      to do in pure Lua.
-
-    * If you're writing a class that will be used in Lua you need to add this decorator to
-      every single function and method that should unpack Lua tables. That's too much bloat.
 
 # Done
 
@@ -90,6 +61,43 @@
     When a userdata that references a Python object is ressurected, the Python object itself isn't, leaving a
     dangling pointer that will likely result in bad memory access. We just need to invalidate the reference
     and throw an error in Python whenever someone tries to access this reference.
+
+* Study the implementation of named parameters using decorators
+
+  * The current implementation of named parameters envolves decorating a function or a method with
+    the `unpacks_lua_table` and the `unpacks_lua_table_method` functions, respectively. This function
+    or method will then detect if it is called with a `LuaTable` (Cython class wrapper for Lua tables)
+    and nothing more, and unpack its contents as positional and keyword arguments with the same
+    semantics Lua uses for distinguishing entries in a table.
+
+  * These are some advantages of this implementation:
+
+    * The function or method will unpack any Lua table, that could be even constructed literally
+      when calling it, taking full advantage of the syntactic sugar that lets the programmer to
+      omits the parentheses on a call expression.
+
+    * It's a one-time configuration scheme. Once the function or method is decorated, you don't
+      need to think about it ever again.
+
+  * These are some disadvantages of this implementation:
+
+    * There is really no *clean* way to decorate Python functions and methods while in Lua. So if
+      you're trying to call a built-in function that accepts keyword arguments, like `open`, your
+      only option is to wrap it using `unpacks_lua_table`, which I don't think is even feasible to
+      to do in pure Lua.
+
+    * If you're writing a class that will be used in Lua you need to add this decorator to
+      every single function and method that should unpack Lua tables. That's too much bloat.
+
+* Study alternative implementations of named parameters
+
+  * The solution we came up with was to add a function called `python.args` which takes a Lua table,
+    processes it, and returns a `userdata`. This `userdata`, when passed as the last argument in a
+    call to a Python object in Lua, is "unpacked" into Python positional and keyword arguments.
+    
+  * This method is much prefferable than `unpacks_lua_table` because it does not obstruct bound
+    Python methods and differentiates Lua tables from Python arguments. It also allows for reusing
+    the same `python.args{...}` in many calls, for example on a tight loop.
 
 [(1)]: https://mail.python.org/pipermail/new-bugs-announce/2008-November/003322.html
 [(2)]: https://github.com/bastibe/lunatic-python/blob/master/src/pythoninlua.c#L641
