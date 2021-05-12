@@ -40,6 +40,23 @@ local function testoverflow(success)
 	return ret
 end
 
+-- Run as many garbage collection cycles as needed to
+-- stabilize the total space allocated by Lua
+-- (Actually does up to 100 cycles, then aborts)
+-- Returns the total allocated size
+local function collectallgarbage()
+	local count = collectgarbage('count')
+	for i = 1, 100 do
+		collectgarbage('collect')
+		local newcount = collectgarbage('count')
+		if count == newcount then
+			return newcount
+		end
+		count = newcount
+	end
+	error "Exceeded limit of garbage collection cycles"
+end
+
 -----------------------------------------------------------
 -- Test cases
 -----------------------------------------------------------
@@ -650,20 +667,16 @@ end
 function main.GarbageCollector()
 	-- Test garbage collection, by making sure that the
 	-- amount of memory used by Lua before and after calling f
-	-- stays the same (that is, all is garbage collected)
+	-- stays the same (that is, all garbage is collected)
 	local function testgc(f)
-		local count
+		local count = collectallgarbage()
 		for i = 1, 100 do
-			collectgarbage()
-			collectgarbage()
-			count = collectgarbage('count')
 			f()
-			collectgarbage()
-			collectgarbage()
-			count = collectgarbage('count') - count
-			if count == 0 then
+			local newcount = collectallgarbage()
+			if newcount == count then
 				return
 			end
+			count = newcount
 		end
 		error(count*1024 .. " bytes leaked")
 	end
@@ -678,8 +691,8 @@ function main.GarbageCollector()
 	end)
 	testgc(function()
 		local t = { dict = python.dict() }
-		setmetatable(t, {__mode = "v"})
 		t.dict.ref = t
+		setmetatable(t, {__mode = "v"})
 	end)
 end
 
@@ -775,9 +788,9 @@ function main.LuaTableIterable()
 	testtableiterable{["with spaces"]=10}
 	testtableiterable{[""]=10}
 	testtableiterable{[1.2]=10}
-	-- testtableiterable{[{}]=10} FIXME
-	-- testtableiterable{[function() end]=10} FIXME
-	-- testtableiterable{[coroutine.create(function() end)]=10} FIXME
+	testtableiterable{[{}]=10}
+	testtableiterable{[function() end]=10}
+	testtableiterable{[coroutine.create(function() end)]=10}
 end
 
 function main.PythonArguments()
