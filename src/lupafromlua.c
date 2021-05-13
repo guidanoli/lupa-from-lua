@@ -218,10 +218,8 @@ DLL_EXPORT int luaopen_lupafromlua (lua_State *L)
 
 	/* Construct a dictionary
 	
-	   = dict(state=<py_capsule>, unpack_returned_tuples=True) */
-	check_true(L, (constructor_kwargs = Py_BuildValue("{s:O,s:O}",
-	                                                   "state", py_capsule,
-													   "unpack_returned_tuples", Py_True)) != NULL,
+	   = dict(state=<py_capsule>) */
+	check_true(L, (constructor_kwargs = Py_BuildValue("{s:O}", "state", py_capsule)) != NULL,
 			"Could not allocate dict");
 
 	Py_DECREF(py_capsule);

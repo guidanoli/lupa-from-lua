@@ -222,6 +222,9 @@ function main.Eval()
 		{ "{}", python.dict() },
 		{ "{'a': 1}", python.dict("a", 1) },
 		{ "{'a': 1, 'b': 2, 'c': 3}", python.dict("a", 1, "b", 2, "c", 3) },
+		{ "()", python.tuple() },
+		{ "(1, )", python.tuple(1) },
+		{ "(1, 2, 3)", python.tuple(1, 2, 3) },
 		{ "set()", python.set() },
 		{ "{1}", python.set(1) },
 		{ "{1}", python.set(1, 1, 1) },
@@ -487,19 +490,6 @@ function main.Enumerate()
 	assert(not entered)
 end
 
-function main.CallPyFunction()
-	local returnall = python.eval("lambda *args: args")
-	local t = {}
-	for i = 1, 1000 do
-		t[i] = i
-	end
-	local ret = table.pack(returnall(table.unpack(t)))
-	assert(#ret == 1000)
-	for i = 1, 1000 do
-		assert(ret[i] == i)
-	end
-end
-
 function main.Callback()
 	local cb_called = false
 	local function lua_cb() cb_called = true end
@@ -508,20 +498,6 @@ function main.Callback()
 	assert(not cb_called)
 	python_cb()
 	assert(cb_called)
-
-	local function returnalot(n)
-		local t = {}
-		for i = 1, n do
-			t[i] = i
-		end
-		return table.unpack(t)
-	end
-	local callme = python.eval("lambda f, *args: f(*args)")
-	local ret = table.pack(callme(returnalot, 1000))
-	assert(#ret == 1000)
-	for i = 1, 1000 do
-		assert(ret[i] == i)
-	end
 end
 
 function main.Roundtrip()
@@ -555,32 +531,35 @@ function main.MultipleReturnValues()
 	local testcases = {
 		{
 			input = { "a", "b", "c" },
-			output = { "a", "b", "c" },
-			nvals = 3,
+			output = python.tuple("a", "b", "c")
 		},
 		{
-			input = { "a", "b", python.none, "c" },
-			output = { "a", "b", nil, "c" },
-			nvals = 4,
+			input = { "a", "b", nil, "c" },
+			output = python.tuple("a", "b", nil, "c"),
 		},
 		{
-			input = { "a", "b", nil, python.none },
-			output = { "a", "b", python.none, python.none },
-			nvals = 4,
+			input = { "a", "b", nil }, -- nil is ignored in Lua
+			output = python.tuple("a", "b"),
+		},
+		{
+			input = { "a", "b", python.none },
+			output = python.tuple("a", "b", python.none),
+		},
+		{
+			input = { "a", "b", nil, python.none }, -- nil is no longer ignored
+			output = python.tuple("a", "b", python.none, python.none),
 		},
 	}
 
-	local mktuple = python.eval('lambda *args: (args, )')
+	local identity = python.wrap(function(...) return ... end)
 
-	for testno, testcase in ipairs(testcases) do
-		local input = mktuple(table.unpack(testcase.input))
-		local output = mktuple(table.unpack(testcase.output))
-		if not python.equal(input, output) then
-			error(string.format("test #%d: %s != %s", testno, input, output))
+	for testindex, testcase in ipairs(testcases) do
+		local ok, ret = pcall(identity, table.unpack(testcase.input))
+		if not ok then
+			error("failed test #" .. testindex .. ": " .. tostring(ret))
 		end
-		local nvals = python.builtins.len(input)
-		if nvals ~= testcase.nvals then
-			error(string.format("test #%d: nvals = %d", testno, nvals))
+		if not python.equal(ret, testcase.output) then
+			error("failed test #" .. testindex .. ": obtained " .. tostring(ret))
 		end
 	end
 	
@@ -822,7 +801,9 @@ function main.PythonArguments()
 	-- Calls the identity function with ...
 	-- and checks if args and kwargs match
 	local function testpyargs(args, kwargs, ...)
-		local retargs, retkwargs = identity(...)
+		local ret = identity(...)
+		local retargs = ret[0]
+		local retkwargs = ret[1]
 		assert(#args == python.builtins.len(retargs))
 		for i, arg in ipairs(args) do
 			assert(retargs[i-1] == arg)
