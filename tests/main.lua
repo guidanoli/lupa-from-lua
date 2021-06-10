@@ -490,6 +490,19 @@ function main.Enumerate()
 	assert(not entered)
 end
 
+function main.CallPyFunction()
+	local returnall = python.eval("lambda *args: args")
+	local t = {}
+	for i = 1, 1000 do
+		t[i] = i
+	end
+	local ret = returnall(table.unpack(t))
+	assert(python.builtins.len(ret) == 1000)
+	for i = 1, 1000 do
+		assert(ret[i-1] == i)
+	end
+end
+
 function main.Callback()
 	local cb_called = false
 	local function lua_cb() cb_called = true end
@@ -498,6 +511,20 @@ function main.Callback()
 	assert(not cb_called)
 	python_cb()
 	assert(cb_called)
+
+	local function returnalot(n)
+		local t = {}
+		for i = 1, n do
+			t[i] = i
+		end
+		return table.unpack(t)
+	end
+	local callme = python.eval("lambda f, *args: f(*args)")
+	local ret = callme(returnalot, 1000)
+	assert(python.builtins.len(ret) == 1000)
+	for i = 1, 1000 do
+		assert(ret[i-1] == i)
+	end
 end
 
 function main.Roundtrip()
@@ -684,6 +711,7 @@ function main.GarbageCollector()
 	testgc(function() end)	
 	testgc(function() python.list() end)
 	testgc(function() local l = python.list() end)
+	testgc(function() python.eval('lua.eval("{}")') end)
 	testgc(function() local t = { python.list() } end)
 	testgc(function()
 		local d = python.dict()
