@@ -28,16 +28,37 @@ end
 -- Check if current Lua version supports integers
 local hasintegers = math.tointeger ~= nil
 
--- Test the handling of overflow when trying to fit an overly
--- big Python long into a Lua number (potentially an integer).
--- You can either expect that an error will be raised (success=false)
--- or that it will succeed (success=true)
--- If it succeeds, returns the converted object
--- If it fails, returns the error message
-local function testoverflow(success)
-	local ok, ret = pcall(python.eval, '10**500')
-	assert(ok == success, tostring(ret))
-	return ret
+-- Checks if the 'pyobj' (Python object) is an instance
+-- of at least one of the types listed after (strings)
+local function isinstance(pyobj, ...)
+	local pybuiltins = python.builtins
+	local pyhasattr = pybuiltins.hasattr
+	local pyisinstance = pybuiltins.isinstance
+	for _, pytype in ipairs{...} do
+		if pyhasattr(pybuiltins, pytype) then
+			local pytypeobj = pybuiltins[pytype]
+			if pyisinstance(pyobj, pytypeobj) then
+				return true
+			end
+		end
+	end
+	return false
+end
+
+-- Run function f and except it to raise a Python exception
+-- that is an instance of the exctype class
+local function testerror(exctype, f, ...)
+	local ok, exc = pcall(f, ...)
+	assert(not ok, "Expected to raise an error")
+	assert(python.builtins.isinstance(exc, exctype),
+		string.format("Expected to throw %s, not %s", tostring(exctype), tostring(exc)))
+	return python.as_attrgetter(exc)
+end
+
+-- Try evaluating 'number' (a string) and expect an OverflowError
+-- to be raised by Python. Returns the exception object
+local function testoverflow(number)
+	return testerror(python.builtins.OverflowError, python.eval, number)
 end
 
 -- Run as many garbage collection cycles as needed to
@@ -87,45 +108,40 @@ end
 
 function main.AsAttributeGetter_List()
 	local l = python.list()
+	local l_attrs = python.as_attrgetter(l)
 
-	assert(not pcall(function()
-		-- Since list implements the sequence protocol, lupa
-		-- by default assumes item getter protocol in Python
-		return l.append
-	end))
+	-- Since list implements the sequence protocol, lupa
+	-- by default assumes item getter protocol in Python
+	testerror(python.builtins.TypeError, function() return l.append end)
 
 	-- By using the as_attrgetter, lupa understands that
 	-- any indexation is in fact access to an attribute
-	local append_func = python.as_attrgetter(l).append
-	append_func(0)
+	l_attrs.append(0)
 
 	-- Check the effect of calling the append function
-	local len_func = python.as_attrgetter(l).__len__
-	assert(len_func() == 1)
+	assert(l_attrs.__len__() == 1)
 end
 
 function main.AsAttributeGetter_Dict()
 	local d = python.dict()
+	local d_attrs = python.as_attrgetter(d)
 
-	assert(not pcall(function()
-		-- Since dict implements the sequence protocol, lupa
-		-- by default assumes item getter protocol in Python
-		return d.get
-	end))
+	-- Since dict implements the sequence protocol, lupa
+	-- by default assumes item getter protocol in Python
+	testerror(python.builtins.KeyError, function() return d.get end)
 
 	-- By using the as_attrgetter, lupa understands that
 	-- any indexation is in fact access to an attribute
-	local get_func = python.as_attrgetter(d).get
-	assert(get_func("key", python.none) == nil)
+	assert(d_attrs.get("key", python.none) == nil)
 
 	-- Insert an entry to the dictionary by using the
 	-- traditional brackets notation
 	d["key"] = "value"
-	assert(get_func("key", python.none) == "value")
+	assert(d_attrs.get("key", python.none) == "value")
 
 	-- Test another form of indextation, using the dot notation
 	d.key1 = "value1"
-	assert(get_func("key1", python.none) == "value1")
+	assert(d_attrs.get("key1", python.none) == "value1")
 end
 
 function main.AsAttributeGetter_Builtins()
@@ -142,18 +158,16 @@ end
 
 function main.AsItemGetter_List()
 	local l = python.list()
+	local l_attrs = python.as_attrgetter(l)
 
-	assert(not pcall(function ()
-		-- Since list implements the sequence protocol, lupa
-		-- by default assumes item getter protocol in Python
-
-		-- But the list is empty so it will fail
-		return l[0]
-	end))
+	-- Since list implements the sequence protocol, lupa
+	-- by default assumes item getter protocol in Python
+	-- But the list is empty so it will fail
+	testerror(python.builtins.IndexError, function() return l[0] end)
 
 	-- Populate the list with numbers in order
 	for i = 0, 10 do
-		python.as_attrgetter(l).append(i)
+		l_attrs.append(i)
 	end
 
 	-- Using the brackets notation
@@ -164,23 +178,23 @@ function main.AsItemGetter_List()
 	end
 
 	-- Using python.as_itemgetter
+	local l_items = python.as_itemgetter(l_attrs)
 	for i = 0, 10 do
 		-- Check that the items were added
 		-- Remember that Python indexation begins with 0
-		assert(python.as_itemgetter(l)[i] == i)
+		assert(l_items[i] == i)
 	end
 end
 
 function main.AsItemGetter_Dict()
 	local d = python.dict()
+	local d_attrs = python.as_attrgetter(d)
+	local d_items = python.as_itemgetter(d_attrs)
 
-	assert(not pcall(function ()
-		-- Since dict implements the sequence protocol, lupa
-		-- by default assumes item getter protocol in Python
-
-		-- But the dict is empty so it will fail
-		return d["key"]
-	end))
+	-- Since dict implements the sequence protocol, lupa
+	-- by default assumes item getter protocol in Python
+	-- But the dict is empty so it will fail
+	testerror(python.builtins.KeyError, function() return d['key'] end)
 
 	-- Populate the dict with numbers in order
 	for i = 0, 10 do
@@ -196,7 +210,7 @@ function main.AsItemGetter_Dict()
 	-- Using python.as_itemgetter
 	for i = 0, 10 do
 		-- Check that the items were added
-		assert(python.as_itemgetter(d)[i] == i)
+		assert(d_items[i] == i)
 	end
 end
 
@@ -295,9 +309,7 @@ end
 
 function main.ExecAssert()
 	python.exec("assert True")
-	assert(not pcall(function()
-		python.exec("assert False")
-	end))
+	testerror(python.builtins.AssertionError, python.exec, "assert False")
 end
 
 function main.ExecPass()
@@ -322,33 +334,23 @@ function main.ExecDel()
 end
 
 function main.ExecReturn()
-	assert(not pcall(function()
-		python.exec("return")
-	end))
+	testerror(python.builtins.SyntaxError, python.exec, "return")
 end
 
 function main.ExecYield()
-	assert(not pcall(function()
-		python.exec("yield")
-	end))
+	testerror(python.builtins.SyntaxError, python.exec, "yield")
 end
 
 function main.ExecRaise()
-	assert(not pcall(function()
-		python.exec("raise RuntimeError")
-	end))
+	testerror(python.builtins.RuntimeError, python.exec, "raise RuntimeError")
 end
 
 function main.ExecBreak()
-	assert(not pcall(function()
-		python.exec("break")
-	end))
+	testerror(python.builtins.SyntaxError, python.exec, "break")
 end
 
 function main.ExecContinue()
-	assert(not pcall(function()
-		python.exec("continue")
-	end))
+	testerror(python.builtins.SyntaxError, python.exec, "continue")
 end
 
 function main.ExecImport()
@@ -366,10 +368,7 @@ end
 
 function main.ExecNonLocal()
 	local varname = newname()
-
-	assert(not pcall(function()
-		python.exec("nonlocal " .. varname)
-	end))
+	testerror(python.builtins.SyntaxError, python.exec, "nonlocal " .. varname)
 end
 
 function main.IterList()
@@ -596,13 +595,8 @@ function main.NumberFromLuaToPython()
 	local eqvalue = python.eval('lambda a, b: a == eval(b)')
 	local eqvalueself = function(o) return eqvalue(o, tostring(o)) end
 	local isnan = python._.math.isnan
-	local isinteger
-	if pcall(python.eval, 'long') then
-		isinteger = python.eval('lambda n: isinstance(n, (int, long))')
-	else
-		isinteger = python.eval('lambda n: isinstance(n, int)')
-	end
-	local isfloat = python.eval('lambda n: isinstance(n, float)')
+	local isinteger = function(o) return isinstance(o, 'int', 'long') end
+	local isfloat = function(o) return isinstance(o, 'float') end
 
 	assert(isinteger(1))
 	assert(eqvalue(1, '1'))
@@ -654,41 +648,44 @@ function main.NumberFromPythonToLua()
 	utils:TestNumEq(python.eval('float("inf")'), 1/0)
 	utils:TestNumEq(python.eval('float("-inf")'), -1/0)
 
-	-- Make sure no overflow handler is set
-	python.set_overflow_handler(nil)
+	-- Make sure overflows are not ignored
+	python.set_overflow_handler(function() error() end)
 
 	-- 10^500 >> 2^63 - 1 (signed 64-bit integer maximum value)
 	-- 10^500 >> 1.8*10^308 (double-precision floating-point format maximum value)
-	assert(not pcall(python.eval, '10**500'),
-		"Converting too large Python integers should throw an error")
-	
-	-- -10^500 << 2^64 (signed 64-bit integer minimum value)
+	testoverflow('10**500')
+
+	-- -10^500 << -2^63 (signed 64-bit integer minimum value)
 	-- -10^500 << -1.8*10^308 (double-precision floating-point format minimum value)
-	assert(not pcall(python.eval, '-10**500'),
-		"Converting too large Python integers should throw an error")
+	testoverflow('-10**500')
 end
 
 function main.NoHandler()
 	python.set_overflow_handler(nil)
-	testoverflow(false)
+	local proxy = python.eval('10**500')
+	local proxytype = python.builtins.type(proxy)
+	assert(proxytype == python.builtins.int or
+	       proxytype == python.builtins.long)
+	local proxystr = python.builtins.str(proxy)
+	local expectedstr = '1' .. string.rep('0', 500)
+	assert(proxystr == expectedstr)
 end
 
 function main.EmptyHandler()
 	python.set_overflow_handler(function() end)
-	assert(testoverflow(true) == nil)
+	assert(python.eval('10**500') == nil)
 end
 
 function main.HandlerWithLuaError()
-	python.set_overflow_handler(error)
-	assert(testoverflow(false))
+	python.set_overflow_handler(function() error() end)
+	testoverflow('2**64')
+	testoverflow('10**500')
 end
 
 function main.FloatFallbackHandler()
 	python.set_overflow_handler(python.builtins.float)
-	local ok, ret = pcall(python.eval, '10**100')
-	assert(ok, ret)
-	utils:TestNumEq(ret, 1e100)
-	testoverflow(false)
+	assert(python.eval('2**64') == 2^64)
+	testoverflow('10**500')
 end
 
 function main.GarbageCollector()
@@ -725,9 +722,8 @@ function main.GarbageCollector()
 end
 
 function main.ExceptionMessage()
-	local ok, ret = pcall(python.exec, 'raise Exception("myerrormessage")')
-	assert(not ok, "Python raise should have led to Lua error")
-	assert(ret:find("Exception: myerrormessage"), "Error message should be preserved")
+	local exc = testerror(python.builtins.Exception, python.exec, 'raise Exception("xyz")')
+	assert(exc.__str__() == 'xyz')
 end
 
 function main.MissingReference()
@@ -760,9 +756,14 @@ function main.MissingReference()
 		assert(t ~= nil, "finalizer not called")
 		assert(t.obj ~= nil, "table graph not restored")
 		
-		local ok, ret = pcall(f, t.obj)
-		assert(not ok, "Python should raise an error when accessign missing reference")
-		assert(ret:find("deleted python object"), "Error message should contain 'deleted python object'")
+		if type(f) == 'userdata' then
+			local exc = testerror(python.builtins.ReferenceError, f, t.obj)
+			assert(exc.__str__() == 'deleted python object')
+		else
+			assert(type(f) == 'function')
+			local ok, ret = pcall(f, t.obj)
+			assert(not ok and ret:find('deleted python object'))
+		end
 	end
 
 	testmissingref(python.dict(), print)                                                -- __tostring
@@ -774,7 +775,7 @@ function main.MissingReference()
 	testmissingref(python.wrap(print), function(o) python.as_attrgetter(o).a = 1 end)   -- __newindex (attrgetter)
 	testmissingref(python.wrap(print), function(o) o() end)                             -- __call
 
-	testmissingref(python.dict(), python.builtins.print) -- reflection
+	testmissingref(python.dict(), python.builtins.len)   -- call from Python
 	testmissingref(python.dict(), python.iter)           -- iteration
 	testmissingref(python.dict(), python.iterex)         -- iteration (explode tuples)
 	testmissingref(python.dict(), python.enumerate)      -- iteration (with indices)
@@ -845,20 +846,28 @@ function main.PythonArguments()
 		end
 	end
 
-	-- Tests testpyargs error message against regex
-	local function testpyargserror(regex, ...)
-		local ok, ret = pcall(python.args, ...)
-		assert(not ok)
-		assert(type(ret) == 'string')
-		assert(ret:find(regex))
+	-- Tests python.args to throw a Lua error and match regex
+	local function testpyargs_luaerror(regex, ...)
+		local ok, err = pcall(python.args, ...)
+		assert(not ok, "expected error")
+		assert(type(err) == 'string', "expected string error")
+		assert(err:find(regex), "expected regex to match")
+	end
+	
+	-- Tests python.args to throw a Python exception and match regex
+	local function testpyargs_pyerror(exctype, regex, ...)
+		local exc = testerror(exctype, python.args, ...)
+		local msg = exc.__str__()
+		assert(msg:find(regex), "expected regex to match")
 	end
 
 	testpyargs({}, {})
 	testpyargs({}, {}, python.args{})
-	testpyargserror("table expected, got no value")
-	testpyargserror("table expected, got number", 1)
-	testpyargserror("table index out of range", {[3]=7})
-	testpyargserror("table key is neither an integer nor a string", {[{}]=7})
+	testpyargs_luaerror("table expected, got no value")
+	testpyargs_luaerror("table expected, got number", 1)
+	testpyargs_pyerror(python.builtins.IndexError, "table index out of range", {[0]=7})
+	testpyargs_pyerror(python.builtins.IndexError, "table index out of range", {[2]=7})
+	testpyargs_pyerror(python.builtins.TypeError, "table key is neither an integer nor a string", {[true]=7})
 	testpyargs({1}, {}, python.args{1})
 	testpyargs({1, 2, 3}, {}, python.args{1, 2, 3})
 	testpyargs({}, {a=1}, python.args{a=1})

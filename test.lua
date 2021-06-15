@@ -22,7 +22,7 @@ function t.safe_run()
 				passed = passed + 1
 			else
 				utils:Print("FAIL", "red", testname)
-				io.stderr:write(errmsg .. "\n")
+				io.stderr:write(tostring(errmsg) .. "\n")
 				failed = failed + 1
 			end
 		end
