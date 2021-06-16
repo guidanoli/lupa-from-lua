@@ -161,7 +161,7 @@ python setup.py test # in lupa/
 If you wish to test for different versions of python, you should use `tox`.
 
 ```sh
-python -m pip install install tox
+python -m pip install tox
 tox # in lupa/
 ```
 
