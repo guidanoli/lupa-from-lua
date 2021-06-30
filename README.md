@@ -130,19 +130,19 @@ python setup.py develop --uninstall --user # in lupa/
 
 ### Lupafromlua
 
-You can run the tests by passing the `test.lua` script to the Lua standalone.
+You can test Lupa from Lua by running the `test.lua` script with the Lua standalone.
 
 ```sh
 lua test.lua
 ```
 
-Or, equivalently, by loading it in Lua and then calling `run`.
+If you don't have the Lua standalone, you can also call the `lupafromluatest` executable that is built with the Lupa from Lua library.
 
-```lua
-require'test'.run()
+```sh
+./lupafromluatest
 ```
 
-Be aware that if at least one test fails, the program will exit. If you wish to have more control over the testing, there is the following safer alternative.
+What it does is call the `safe_run` function from the `test.lua` script.
 
 ```lua
 local ok, err = require'test'.safe_run()
@@ -150,9 +150,15 @@ local ok, err = require'test'.safe_run()
 -- On failure, ok = false and err = error message
 ```
 
+Alternatively, you can call the `run` function if you want to abort the program in case a test case fails.
+
+```lua
+require'test'.run()
+```
+
 ### Lupa
 
-You may also want to test lupa as a Python extension.
+You may also want to test Lupa as a Python extension.
 
 ```sh
 python setup.py test # in lupa/
