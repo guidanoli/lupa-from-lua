@@ -136,13 +136,7 @@ You can test Lupa from Lua by running the `test.lua` script with the Lua standal
 lua test.lua
 ```
 
-If you don't have the Lua standalone, you can also call the `lupafromluatest` executable that is built with the Lupa from Lua library.
-
-```sh
-./lupafromluatest
-```
-
-What it does is call the `safe_run` function from the `test.lua` script.
+If you don't have the Lua standalone, you can run the tests from inside Lua by importing the `test.lua` script and calling the `safe_run` function.
 
 ```lua
 local ok, err = require'test'.safe_run()

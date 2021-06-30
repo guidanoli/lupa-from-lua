@@ -98,12 +98,14 @@ DLL_EXPORT int luaopen_lupafromlua (lua_State *L)
 #if defined(__linux__)
 #	if defined(PYTHON_LIBRT)
 #		define STR(s) #s
-#		define PYLIB_STR(s) STR(s)
+#		define XSTR(s) STR(s)
 
 	/* Links to Python runtime library */
-	check_true(L, (handle = dlopen(PYLIB_STR(PYTHON_LIBRT), RTLD_NOW | RTLD_GLOBAL)) != NULL,
-			"Could not link to Python runtime library (\"" PYLIB_STR(PYTHON_LIBRT) "\")");
+	check_true(L, (handle = dlopen(XSTR(PYTHON_LIBRT), RTLD_NOW | RTLD_GLOBAL)) != NULL,
+			"Could not link to Python runtime library (\"" XSTR(PYTHON_LIBRT) "\")");
 
+#		undef XSTR
+#		undef STR
 #	else
 #		error PYTHON_LIBRT must be defined when building under Linux!
 #	endif

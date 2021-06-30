@@ -109,6 +109,3 @@ jobs:
 
       - name: Test Lupafromlua with Lua standalone (expression)
         run: lua -e "require'test'.run()"
-
-      - name: Test Lupafromlua with test driver (executable)
-        run: ./lupafromluatest
