@@ -878,4 +878,12 @@ function main.PythonArguments()
 	testpyargs({1, 2, 3}, {a=1, b=2, c=3}, python.args{a=1, b=2, c=3, 1, 2, 3})
 end
 
+function main.ReloadLibrary()
+	local lib1 = python
+	package.loaded["tests.python"] = nil
+	package.loaded.lupafromlua = nil
+	local lib2 = require "tests.python"
+	assert(lib1 == lib2, "not the same library")
+end
+
 return main

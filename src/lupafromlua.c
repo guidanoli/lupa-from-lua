@@ -3,7 +3,8 @@
 /* Checks if a condition is true. If not, raises an error in Lua. */
 static void check_true (lua_State *L, int condition, const char *fmt, ...)
 {
-	if (!condition) {
+	if (!condition)
+	{
 		va_list argp;
 		va_start(argp, fmt);
 		luaL_where(L, 1);
@@ -13,6 +14,9 @@ static void check_true (lua_State *L, int condition, const char *fmt, ...)
 		lua_error(L);
 	}
 }
+
+/* key for library in the registry for interacting with Python from Lua */
+static const char * const LUPAFROMLUALIB = "LUPAFROMLUALIB";
 
 /* key for userdata in the registry that, when garbage collected, finalizes Python */
 static const char * const LUPAFROMLUA = "LUPAFROMLUA";
@@ -27,7 +31,8 @@ static int lupafromlua_gc (lua_State *L)
 		Py_Finalize();
 
 #if defined(__linux__)
-	if (handle != NULL) {
+	if (handle != NULL)
+	{
 		/* Unlinks from Python runtime library */
 		check_true(L, dlclose(handle) == 0,
 				"Could not unlink from Python runtime library");
@@ -92,6 +97,22 @@ DLL_EXPORT int luaopen_lupafromlua (lua_State *L)
 #else
 	char *argv[] = {"<lua>", 0};
 #endif
+
+	/* If Python is already initialized
+	 * (maybe the library was reloaded) */
+	if (Py_IsInitialized())
+	{
+		/* Get LUPAFROMLUALIB from registry */
+		lua_getfield(L, LUA_REGISTRYINDEX, LUPAFROMLUALIB);
+
+		/* Check if library is stored in registry */
+		check_true(L, lua_istable(L, -1),
+				"Python was initialized but no library was found");
+		
+		/* Return the library */
+		return 1;
+	}
+
 	/* Set program name */
 	Py_SetProgramName(argv[0]);
 
@@ -115,7 +136,8 @@ DLL_EXPORT int luaopen_lupafromlua (lua_State *L)
 	lua_getfield(L, LUA_REGISTRYINDEX, LUPAFROMLUA);
 
 	/* Check if LUPAFROMLUA doesn't exist yet */
-	if (!lua_isuserdata(L, -1)) {
+	if (!lua_isuserdata(L, -1))
+	{
 		/* Create LUPAFROMLUA and add it to the registry */
 		lua_pop(L, 1);
 		lua_newuserdata(L, 0);
@@ -261,5 +283,10 @@ DLL_EXPORT int luaopen_lupafromlua (lua_State *L)
 
 	Py_DECREF(lupa_lua_runtime_instance);
 
+	/* Store 'python' library in registry */
+	lua_pushvalue(L, -1);
+	lua_setfield(L, LUA_REGISTRYINDEX, LUPAFROMLUALIB);
+
+	/* Return 'python' library */
 	return 1;
 }

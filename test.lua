@@ -14,7 +14,7 @@ function t.safe_run()
 	local failed = 0
 	local tb = require "tests.main"
 	utils:Print("####", nil, "Running all tests")
-	for testname, testfunc in utils:SortedPairs(tb) do
+	for testname, testfunc in pairs(tb) do
 		if type(testfunc) == "function" then
 			local ok, errmsg = xpcall(testfunc, debug.traceback)
 			if ok then
