@@ -104,5 +104,11 @@ jobs:
       - name: Build Lupa and Lupafromlua
         run: cmake --build build
 
-      - name: Test Lupafromlua
+      - name: Test Lupafromlua with Lua standalone (script)
         run: lua test.lua
+
+      - name: Test Lupafromlua with Lua standalone (expression)
+        run: lua -e "require'test'.run()"
+
+      - name: Test Lupafromlua with test driver (executable)
+        run: ./lupafromluatest
