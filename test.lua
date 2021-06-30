@@ -39,7 +39,7 @@ end
 
 -- Similar to t.safe_run, but asserts that all tests pass
 function t.run()
-	return assert(t.safe_run())
+	assert(t.safe_run())
 end
 
 if type(arg) == "table" and arg[0]:find("test%.lua$") then

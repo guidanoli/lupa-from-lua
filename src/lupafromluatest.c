@@ -23,10 +23,18 @@ int main(int argc, char** argv)
 		return 1;
 	}
 	lua_getfield(L, -1, "safe_run");
-	lua_call(L, 0, 2);
+	if (lua_pcall(L, 0, 2, 1))
+	{
+		fprintf(stderr, "%s: Could not run test cases\n", argv[0]);
+		if (lua_isstring(L, -1))
+		{
+			fprintf(stderr, "%s\n", lua_tostring(L, -1));
+		}
+		return 1;
+	}
 	if (lua_isboolean(L, -2) && !lua_toboolean(L, -2))
 	{
-		fprintf(stderr, "%s: Test failed\n", argv[0]);
+		fprintf(stderr, "%s: At least one test case has failed\n", argv[0]);
 		if (lua_isstring(L, -1))
 		{
 			fprintf(stderr, "%s\n", lua_tostring(L, -1));
