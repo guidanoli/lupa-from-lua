@@ -144,7 +144,7 @@ local ok, err = require'test'.safe_run()
 -- On failure, ok = false and err = error message
 ```
 
-Alternatively, you can call the `run` function if you want to abort the program in case a test case fails.
+Alternatively, you can call the `run` function if you want the program to abort in case a test case fails.
 
 ```lua
 require'test'.run()
