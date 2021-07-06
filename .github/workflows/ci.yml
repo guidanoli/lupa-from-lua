@@ -70,10 +70,10 @@ jobs:
       - name: Test Python
         run: pyenv exec python --version 2>&1 | grep -F "$(echo ${{ matrix.python_version }} | tr -cd '[0-9.]')"
 
-      - name: Install Python packages
+      - name: Install Python requirements
         run: |
           pyenv exec pip install --upgrade pip
-          pyenv exec pip install -r lupa/requirements.txt
+          pyenv exec pip install -r requirements.txt
 
       - name: Cache CMake
         id: cache-cmake
