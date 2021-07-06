@@ -4,6 +4,7 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <wchar.h>
+#include <assert.h>
 
 #include "lauxlib.h"
 #include "Python.h"

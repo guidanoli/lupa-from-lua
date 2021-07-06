@@ -31,12 +31,11 @@ static int lupafromlua_gc (lua_State *L)
 		Py_Finalize();
 
 #if defined(__linux__)
-	if (handle != NULL)
-	{
-		/* Unlinks from Python runtime library */
-		check_true(L, dlclose(handle) == 0,
-				"Could not unlink from Python runtime library");
-	}
+	assert(handle != NULL && "Handle is valid under Linux");
+
+	/* Unlinks from Python runtime library */
+	check_true(L, dlclose(handle) == 0,
+			"Could not unlink from Python runtime library");
 #endif
 
 	return 0;
@@ -52,6 +51,10 @@ static long pyint_to_long (lua_State *L, PyObject *o, const char *oname)
 #else
 #define PYINT_(x) PyInt_ ## x
 #endif
+
+	assert(L != NULL && "Lua state is valid");
+	assert(o != NULL && "Object is valid");
+	assert(oname != NULL && "Object name is valid");
 
 	check_true(L, PYINT_(Check)(o),
 			"Expected %s type to be %s. Obtained: %s",
