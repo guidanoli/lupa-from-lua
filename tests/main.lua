@@ -47,12 +47,15 @@ end
 
 -- Run function f and except it to raise a Python exception
 -- that is an instance of the exctype class
-local function testerror(exctype, f, ...)
-	local ok, exc = pcall(f, ...)
-	assert(not ok, "Expected to raise an error")
-	assert(python.builtins.isinstance(exc, exctype),
-		string.format("Expected to throw %s, not %s", tostring(exctype), tostring(exc)))
-	return python.as_attrgetter(exc)
+local function testerror(exc_type_expected, f, ...)
+	local exc_type_before, exc_obj_before = python.exc_info()
+	local ok = pcall(f, ...)
+	local exc_type_after, exc_obj_after = python.exc_info()
+	assert(not ok, "Expected function to raise an error")
+	assert(exc_obj_before ~= exc_obj_after, "Expected a new error to be registered")
+	assert(python.builtins.isinstance(exc_obj_after, exc_type_expected),
+		string.format("Expected to throw %s, not %s", tostring(exc_type_expected), tostring(exc_type_after)))
+	return python.as_attrgetter(exc_obj_after)
 end
 
 -- Try evaluating 'number' (a string) and expect an OverflowError
@@ -880,9 +883,8 @@ end
 
 function main.ReloadLibrary()
 	local lib1 = python
-	package.loaded["tests.python"] = nil
 	package.loaded.lupafromlua = nil
-	local lib2 = require "tests.python"
+	local lib2 = require "lupafromlua"
 	assert(lib1 == lib2, "not the same library")
 end
 
