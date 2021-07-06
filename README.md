@@ -2,8 +2,20 @@
 
 <img align="right" width="200" src="logo.png">
 
-Currently, [Lupa] is a Python extension module which can only be imported from Python. This project intends to port this library to Lua in the form of a C library, allowing Lua to interact with Python.
-For this purpose, the Lupa source code had to be slightly modified in the fork that resides in this repository.
+[Lupa] is a Python extension module that allows the user to create and interact with multiple Lua runtimes from Python. Moreover, inside each Lua runtime, Lupa stores a library for interacting with Python. Our project consists of a Lua library with an embedded Python interpreter that loads Lupa, allowing Lua, as the host language, to also interact with Python. For this purpose, we had to modify the source code of Lupa as to allow Lua runtimes within Python be created from prexisting Lua states.
+
+## Example
+
+```lua
+local python = require "lupafromlua"
+assert(python.eval('3**3') == 27)
+assert(python.eval('lua.eval("3^3")') == 27)
+assert(python.eval('lua.eval("tostring")(13)') == '13')
+local apply = python.eval('lambda f, n: f(n)')
+assert(apply(function(n) return n+1 end, 10) == 11)
+```
+
+For a better understanding of the interface between Lua and Python, we invite you to head to the [Lupa] repository on GitHub.
 
 ## Dependencies
 
