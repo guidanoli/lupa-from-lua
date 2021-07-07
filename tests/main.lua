@@ -45,17 +45,29 @@ local function isinstance(pyobj, ...)
 	return false
 end
 
--- Run function f and except it to raise a Python exception
+-- Run a function f and except it to raise a string containing
+-- a substruct substr
+local function testerrorsubstr(substr, f, ...)
+	local ok, errstr = pcall(f, ...)
+	assert(not ok, "Expected function to raise an error")
+	assert(type(errstr) == 'string', tostring(errstr))
+	assert(errstr:find(substr), errstr)
+end
+
+-- Run a Python function f and except it to raise a Python exception
 -- that is an instance of the exctype class
 local function testerror(exc_type_expected, f, ...)
-	local exc_type_before, exc_obj_before = python.exc_info()
-	local ok = pcall(f, ...)
-	local exc_type_after, exc_obj_after = python.exc_info()
+	local ok, exc_type, exc_obj, tb = python.pcall(f, ...)
 	assert(not ok, "Expected function to raise an error")
-	assert(exc_obj_before ~= exc_obj_after, "Expected a new error to be registered")
-	assert(python.builtins.isinstance(exc_obj_after, exc_type_expected),
-		string.format("Expected to throw %s, not %s", tostring(exc_type_expected), tostring(exc_type_after)))
-	return python.as_attrgetter(exc_obj_after)
+	assert(python.builtins.isinstance(exc_obj, python.builtins.BaseException),
+		string.format("Expected to throw an exception, not %s", tostring(exc_type)))
+	assert(python.builtins.isinstance(exc_obj, exc_type),
+		string.format("Exception %s is not of type %s", tostring(exc_obj), tostring(exc_type)))
+	assert(python.builtins.isinstance(exc_obj, exc_type_expected),
+		string.format("Expected to throw %s, not %s", tostring(exc_type_expected), tostring(exc_type)))
+	assert(tb ~= nil,
+		string.format("Expected traceback object, not %s", tostring(tb)))
+	return python.as_attrgetter(exc_obj)
 end
 
 -- Try evaluating 'number' (a string) and expect an OverflowError
@@ -115,7 +127,8 @@ function main.AsAttributeGetter_List()
 
 	-- Since list implements the sequence protocol, lupa
 	-- by default assumes item getter protocol in Python
-	testerror(python.builtins.TypeError, function() return l.append end)
+	testerrorsubstr('TypeError: list indices must be integers',
+		function() return l.append end)
 
 	-- By using the as_attrgetter, lupa understands that
 	-- any indexation is in fact access to an attribute
@@ -131,7 +144,8 @@ function main.AsAttributeGetter_Dict()
 
 	-- Since dict implements the sequence protocol, lupa
 	-- by default assumes item getter protocol in Python
-	testerror(python.builtins.KeyError, function() return d.get end)
+	-- We use u? to accomodate Python 2 and 3 string representations
+	testerrorsubstr("KeyError: u?'get'", function() return d["get"] end)
 
 	-- By using the as_attrgetter, lupa understands that
 	-- any indexation is in fact access to an attribute
@@ -142,7 +156,7 @@ function main.AsAttributeGetter_Dict()
 	d["key"] = "value"
 	assert(d_attrs.get("key", python.none) == "value")
 
-	-- Test another form of indextation, using the dot notation
+	-- Test another form of indexation, using the dot notation
 	d.key1 = "value1"
 	assert(d_attrs.get("key1", python.none) == "value1")
 end
@@ -166,7 +180,8 @@ function main.AsItemGetter_List()
 	-- Since list implements the sequence protocol, lupa
 	-- by default assumes item getter protocol in Python
 	-- But the list is empty so it will fail
-	testerror(python.builtins.IndexError, function() return l[0] end)
+	testerrorsubstr('IndexError: list index out of range',
+		function() return l[0] end)
 
 	-- Populate the list with numbers in order
 	for i = 0, 10 do
@@ -197,7 +212,7 @@ function main.AsItemGetter_Dict()
 	-- Since dict implements the sequence protocol, lupa
 	-- by default assumes item getter protocol in Python
 	-- But the dict is empty so it will fail
-	testerror(python.builtins.KeyError, function() return d['key'] end)
+	testerrorsubstr("KeyError: u?'key'", function() return d.key end)
 
 	-- Populate the dict with numbers in order
 	for i = 0, 10 do
@@ -758,15 +773,7 @@ function main.MissingReference()
 		collectgarbage()
 		assert(t ~= nil, "finalizer not called")
 		assert(t.obj ~= nil, "table graph not restored")
-		
-		if type(f) == 'userdata' then
-			local exc = testerror(python.builtins.ReferenceError, f, t.obj)
-			assert(exc.__str__() == 'deleted python object')
-		else
-			assert(type(f) == 'function')
-			local ok, ret = pcall(f, t.obj)
-			assert(not ok and ret:find('deleted python object'))
-		end
+		testerrorsubstr('deleted python object', f, t.obj)
 	end
 
 	testmissingref(python.dict(), print)                                                -- __tostring
@@ -857,20 +864,14 @@ function main.PythonArguments()
 		assert(err:find(regex), "expected regex to match")
 	end
 	
-	-- Tests python.args to throw a Python exception and match regex
-	local function testpyargs_pyerror(exctype, regex, ...)
-		local exc = testerror(exctype, python.args, ...)
-		local msg = exc.__str__()
-		assert(msg:find(regex), "expected regex to match")
-	end
+	testerrorsubstr('table expected, got no value', python.args)
+	testerrorsubstr('table expected, got number', python.args, 1)
+	testerrorsubstr('table index out of range', python.args, {[0]=7})
+	testerrorsubstr('table index out of range', python.args, {[2]=7})
+	testerrorsubstr('table key is neither an integer nor a string', python.args, {[true]=7})
 
 	testpyargs({}, {})
 	testpyargs({}, {}, python.args{})
-	testpyargs_luaerror("table expected, got no value")
-	testpyargs_luaerror("table expected, got number", 1)
-	testpyargs_pyerror(python.builtins.IndexError, "table index out of range", {[0]=7})
-	testpyargs_pyerror(python.builtins.IndexError, "table index out of range", {[2]=7})
-	testpyargs_pyerror(python.builtins.TypeError, "table key is neither an integer nor a string", {[true]=7})
 	testpyargs({1}, {}, python.args{1})
 	testpyargs({1, 2, 3}, {}, python.args{1, 2, 3})
 	testpyargs({}, {a=1}, python.args{a=1})
