@@ -889,4 +889,11 @@ function main.ReloadLibrary()
 	assert(lib1 == lib2, "not the same library")
 end
 
+function main.LuaError()
+	local foo = function() error('xyz') end
+	local exc = testerror(python.lua_error, python.wrap(foo))
+	local excstr = tostring(exc)
+	assert(excstr:find('xyz'), excstr)
+end
+
 return main
