@@ -11,6 +11,7 @@ local python = require "tests.python"
 -----------------------------------------------------------
 
 python.import "math"
+python.import "traceback"
 
 -----------------------------------------------------------
 -- Setup
@@ -58,15 +59,16 @@ end
 -- that is an instance of the exctype class
 local function testerror(exc_type_expected, f, ...)
 	local ok, exc_type, exc_obj, tb = python.pcall(f, ...)
+	local format = python.eval('lambda *args: "".join(traceback.format_exception(*args)).strip()')
 	assert(not ok, "Expected function to raise an error")
 	assert(python.builtins.isinstance(exc_obj, python.builtins.BaseException),
 		string.format("Expected to throw an exception, not %s", tostring(exc_type)))
 	assert(python.builtins.isinstance(exc_obj, exc_type),
 		string.format("Exception %s is not of type %s", tostring(exc_obj), tostring(exc_type)))
+	assert(tb ~= nil, string.format("Expected traceback object, not %s", tostring(tb)))
+	local exc_msg = format(exc_type, exc_obj, tb)
 	assert(python.builtins.isinstance(exc_obj, exc_type_expected),
-		string.format("Expected to throw %s, not %s", tostring(exc_type_expected), tostring(exc_type)))
-	assert(tb ~= nil,
-		string.format("Expected traceback object, not %s", tostring(tb)))
+		string.format("Expected to throw %s, not %s:\n%s", tostring(exc_type_expected), tostring(exc_type), exc_msg))
 	return python.as_attrgetter(exc_obj)
 end
 
@@ -299,6 +301,89 @@ function main.Eval()
 			error("failed test #" .. testindex .. ": obtained " .. tostring(ret))
 		end
 	end
+end
+
+function main.EvalWithDictionary()
+	local noscope = python.builtins.dict{} -- empty scope
+	local expression = 'a*b+c'
+
+	do
+		local exc = testerror(python.builtins.TypeError, python.eval, expression, python.args{locals=noscope})
+		local excmsg = tostring(exc)
+		assert(excmsg:find('eval must be given globals and locals when called without a frame'), excmsg)
+	end
+
+	-- Without scope, 'a', 'b' and 'c' don't exist, so NameError should be raised
+	local test_name_error = function(t)
+		local exc = testerror(python.builtins.NameError, python.eval, expression, python.args(t))
+		local excmsg = tostring(exc)
+		assert(excmsg:find('name \'[abc]\' is not defined'), excmsg)
+	end
+
+	test_name_error{noscope}
+	test_name_error{noscope, noscope}
+	test_name_error{globals=noscope}
+	test_name_error{locals=noscope, globals=noscope}
+
+	local scope = python.builtins.dict{a=2, b=3, c=5} -- scope with names
+	local expected_value = 11
+
+	-- With these names in the scope, the expression can be evaluated
+	local test_ok = function(t)
+		local value = python.eval(expression, python.args(t))
+		assert(value == expected_value, value)
+	end
+
+	test_ok{scope}
+	test_ok{scope, noscope}
+	test_ok{noscope, scope}
+	test_ok{scope, scope}
+	test_ok{locals=noscope, globals=scope}
+	test_ok{locals=scope, globals=noscope}
+	test_ok{locals=scope, globals=scope}
+end
+
+function main.ExecWithDictionary()
+	local noscope = python.builtins.dict{}
+	local statement = 'd=a*b+c'
+
+--	do
+--		local exc = testerror(python.builtins.TypeError, python.exec, statement, python.args{locals=noscope})
+--		local excmsg = tostring(exc)
+--		assert(excmsg:find('exec must be given globals and locals when called without a frame'), excmsg)
+--	end
+
+	-- Without scope, 'a', 'b' and 'c' don't exist, so NameError should be raised
+	local test_name_error = function(t)
+		local exc = testerror(python.builtins.NameError, python.exec, statement, python.args(t))
+		local excmsg = tostring(exc)
+		assert(excmsg:find('name \'[abc]\' is not defined'), excmsg)
+	end
+
+	test_name_error{noscope}
+	test_name_error{noscope, noscope}
+	test_name_error{locals=noscope}
+	test_name_error{globals=noscope}
+	test_name_error{locals=noscope, globals=noscope}
+
+	local scope = python.builtins.dict{a=2, b=3, c=5} -- scope with names
+	local checkcode = 'd==11'
+
+	-- With these names in the scope, the statement can be executed
+	local test_ok = function(t)
+		python.exec(statement, python.args(t))
+		local checkval = python.eval(checkcode, python.args(t))
+		assert(checkval, tostring(checkval))
+		scope = python.builtins.dict{a=2, b=3, c=5} -- clear scope
+	end
+
+	test_ok{scope}
+	test_ok{scope, noscope}
+	test_ok{noscope, scope}
+	test_ok{scope, scope}
+	test_ok{locals=noscope, globals=scope}
+	test_ok{locals=scope, globals=noscope}
+	test_ok{locals=scope, globals=scope}
 end
 
 function main.ExecAssignment()
@@ -891,7 +976,7 @@ end
 
 function main.LuaError()
 	local foo = function() error('xyz') end
-	local exc = testerror(python.lua_error, python.wrap(foo))
+	local exc = testerror(python.LuaError, python.wrap(foo))
 	local excstr = tostring(exc)
 	assert(excstr:find('xyz'), excstr)
 end
