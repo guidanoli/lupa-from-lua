@@ -214,6 +214,7 @@ function main.AsItemGetter_Dict()
 	-- Since dict implements the sequence protocol, lupa
 	-- by default assumes item getter protocol in Python
 	-- But the dict is empty so it will fail
+	-- We use u? to accomodate Python 2 and 3 string representations
 	testerrorsubstr("KeyError: u?'key'", function() return d.key end)
 
 	-- Populate the dict with numbers in order

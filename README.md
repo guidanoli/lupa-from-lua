@@ -15,7 +15,7 @@ local apply = python.eval('lambda f, n: f(n)')
 assert(apply(function(n) return n+1 end, 10) == 11)
 ```
 
-For a better understanding of the interface between Lua and Python, we invite you to head to the [Lupa] repository.
+For a better understanding of the interface between Lua and Python, we invite you to head to our [Lupa fork].
 
 ## Dependencies
 
@@ -178,6 +178,7 @@ tox # in lupa/
 ```
 
 [Lupa]: https://github.com/scoder/lupa
+[Lupa fork]: https://github.com/guidanoli/lupa
 [CMake]: https://cmake.org/
 [Lua]: https://www.lua.org/
 [Python]: https://www.python.org/
