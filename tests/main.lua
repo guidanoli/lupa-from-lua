@@ -3,105 +3,28 @@
 -- Run from the project root directory
 -----------------------------------------------------------
 
+local Suite = require "tests.suite"
 local utils = require "tests.utils"
-local python = require "tests.python"
+local python = require "lupafromlua"
 
 -----------------------------------------------------------
 -- Python imports
 -----------------------------------------------------------
 
-python.import "math"
-python.import "traceback"
+python.exec "import math"
+python.exec "import traceback"
 
 -----------------------------------------------------------
--- Setup
+-- Test suite
 -----------------------------------------------------------
 
-local names = 0
-
--- Avoids name collision in Python global scope
-local function newname()
-	local name = names
-	names = names + 1
-	return "t" .. name
-end
-
--- Check if current Lua version supports integers
-local hasintegers = math.tointeger ~= nil
-
--- Checks if the 'pyobj' (Python object) is an instance
--- of at least one of the types listed after (strings)
-local function isinstance(pyobj, ...)
-	local pybuiltins = python.builtins
-	local pyhasattr = pybuiltins.hasattr
-	local pyisinstance = pybuiltins.isinstance
-	for _, pytype in ipairs{...} do
-		if pyhasattr(pybuiltins, pytype) then
-			local pytypeobj = pybuiltins[pytype]
-			if pyisinstance(pyobj, pytypeobj) then
-				return true
-			end
-		end
-	end
-	return false
-end
-
--- Run a function f and except it to raise a string containing
--- a substruct substr
-local function testerrorsubstr(substr, f, ...)
-	local ok, errstr = pcall(f, ...)
-	assert(not ok, "Expected function to raise an error")
-	assert(type(errstr) == 'string', tostring(errstr))
-	assert(errstr:find(substr), errstr)
-end
-
--- Run a Python function f and except it to raise a Python exception
--- that is an instance of the exctype class
-local function testerror(exc_type_expected, f, ...)
-	local ok, exc_type, exc_obj, tb = python.pcall(f, ...)
-	local format = python.eval('lambda *args: "".join(traceback.format_exception(*args)).strip()')
-	assert(not ok, "Expected function to raise an error")
-	assert(python.builtins.isinstance(exc_obj, python.builtins.BaseException),
-		string.format("Expected to throw an exception, not %s", tostring(exc_type)))
-	assert(python.builtins.isinstance(exc_obj, exc_type),
-		string.format("Exception %s is not of type %s", tostring(exc_obj), tostring(exc_type)))
-	assert(tb ~= nil, string.format("Expected traceback object, not %s", tostring(tb)))
-	local exc_msg = format(exc_type, exc_obj, tb)
-	assert(python.builtins.isinstance(exc_obj, exc_type_expected),
-		string.format("Expected to throw %s, not %s:\n%s", tostring(exc_type_expected), tostring(exc_type), exc_msg))
-	return python.as_attrgetter(exc_obj)
-end
-
--- Try evaluating 'number' (a string) and expect an OverflowError
--- to be raised by Python. Returns the exception object
-local function testoverflow(number)
-	return testerror(python.builtins.OverflowError, python.eval, number)
-end
-
--- Run as many garbage collection cycles as needed to
--- stabilize the total space allocated by Lua
--- (Actually does up to 100 cycles, then aborts)
--- Returns the total allocated size
-local function collectallgarbage()
-	local count = collectgarbage('count')
-	for i = 1, 100 do
-		collectgarbage('collect')
-		local newcount = collectgarbage('count')
-		if count == newcount then
-			return newcount
-		end
-		count = newcount
-	end
-	error "Exceeded limit of garbage collection cycles"
-end
+local main = Suite:new{python = python}
 
 -----------------------------------------------------------
--- Test cases
+-- Public methods
 -----------------------------------------------------------
 
-local main = {}
-
-function main.LuaVersion()
+function main:LuaVersion()
 	local lua = python.eval("lua")
 	local lupa_lua_version = lua.lua_version
 
@@ -118,18 +41,19 @@ function main.LuaVersion()
 
 	-- Make sure that the version of Lua embedded into
 	-- Lupa is the same as the one running this script
-	assert(#semvernums >= 2)
-	assert(semvernums[1] == lupa_lua_major)
-	assert(semvernums[2] == lupa_lua_minor)
+	self:assertGreaterEqual(#semvernums, 2)
+	self:assertEqual(semvernums[1], lupa_lua_major)
+	self:assertEqual(semvernums[2], lupa_lua_minor)
 end
 
-function main.AsAttributeGetter_List()
-	local l = python.list()
+function main:AsAttributeGetter_List()
+	local l = python.builtins.list()
 	local l_attrs = python.as_attrgetter(l)
 
 	-- Since list implements the sequence protocol, lupa
 	-- by default assumes item getter protocol in Python
-	testerrorsubstr('TypeError: list indices must be integers',
+	self:_assertRaisesPyRegex(python.builtins.TypeError,
+		"list indices must be integers",
 		function() return l.append end)
 
 	-- By using the as_attrgetter, lupa understands that
@@ -137,33 +61,34 @@ function main.AsAttributeGetter_List()
 	l_attrs.append(0)
 
 	-- Check the effect of calling the append function
-	assert(l_attrs.__len__() == 1)
+	self:assertEqual(l_attrs.__len__(), 1)
 end
 
-function main.AsAttributeGetter_Dict()
-	local d = python.dict()
+function main:AsAttributeGetter_Dict()
+	local d = python.builtins.dict()
 	local d_attrs = python.as_attrgetter(d)
 
 	-- Since dict implements the sequence protocol, lupa
 	-- by default assumes item getter protocol in Python
 	-- We use u? to accomodate Python 2 and 3 string representations
-	testerrorsubstr("KeyError: u?'get'", function() return d["get"] end)
+	self:_assertRaisesPyRegex(python.builtins.KeyError,
+		"get", function() return d["get"] end)
 
 	-- By using the as_attrgetter, lupa understands that
 	-- any indexation is in fact access to an attribute
-	assert(d_attrs.get("key", python.none) == nil)
+	self:assertNil(d_attrs.get("key", python.none))
 
 	-- Insert an entry to the dictionary by using the
 	-- traditional brackets notation
 	d["key"] = "value"
-	assert(d_attrs.get("key", python.none) == "value")
+	self:assertEqual(d_attrs.get("key", python.none), "value")
 
 	-- Test another form of indexation, using the dot notation
 	d.key1 = "value1"
-	assert(d_attrs.get("key1", python.none) == "value1")
+	self:assertEqual(d_attrs.get("key1", python.none), "value1")
 end
 
-function main.AsAttributeGetter_Builtins()
+function main:AsAttributeGetter_Builtins()
 	local builtins = python.builtins
 	-- Since builtins is a module, it does not implement the
 	-- sequence protocol, which means that by default, lupa
@@ -172,17 +97,18 @@ function main.AsAttributeGetter_Builtins()
 	local l2 = python.as_attrgetter(builtins).list
 
 	-- Which means that l1 should be equal to l2 in Python
-	assert(python.equal(l1,l2))
+	self:_assertPyEqual(l1, l2)
 end
 
-function main.AsItemGetter_List()
-	local l = python.list()
+function main:AsItemGetter_List()
+	local l = python.builtins.list()
 	local l_attrs = python.as_attrgetter(l)
 
 	-- Since list implements the sequence protocol, lupa
 	-- by default assumes item getter protocol in Python
 	-- But the list is empty so it will fail
-	testerrorsubstr('IndexError: list index out of range',
+	self:_assertRaisesPyRegex(python.builtins.IndexError,
+		'list index out of range',
 		function() return l[0] end)
 
 	-- Populate the list with numbers in order
@@ -194,7 +120,7 @@ function main.AsItemGetter_List()
 	for i = 0, 10 do
 		-- Check that the items were added
 		-- Remember that Python indexation begins with 0
-		assert(l[i] == i)
+		self:assertEqual(l[i], i)
 	end
 
 	-- Using python.as_itemgetter
@@ -202,12 +128,12 @@ function main.AsItemGetter_List()
 	for i = 0, 10 do
 		-- Check that the items were added
 		-- Remember that Python indexation begins with 0
-		assert(l_items[i] == i)
+		self:assertEqual(l_items[i], i)
 	end
 end
 
-function main.AsItemGetter_Dict()
-	local d = python.dict()
+function main:AsItemGetter_Dict()
+	local d = python.builtins.dict()
 	local d_attrs = python.as_attrgetter(d)
 	local d_items = python.as_itemgetter(d_attrs)
 
@@ -215,7 +141,8 @@ function main.AsItemGetter_Dict()
 	-- by default assumes item getter protocol in Python
 	-- But the dict is empty so it will fail
 	-- We use u? to accomodate Python 2 and 3 string representations
-	testerrorsubstr("KeyError: u?'key'", function() return d.key end)
+	self:_assertRaisesPyRegex(python.builtins.KeyError,
+		"key", function() return d.key end)
 
 	-- Populate the dict with numbers in order
 	for i = 0, 10 do
@@ -225,25 +152,25 @@ function main.AsItemGetter_Dict()
 	-- Using the brackets notation
 	for i = 0, 10 do
 		-- Check that the items were added
-		assert(d[i] == i)
+		self:assertEqual(d[i], i)
 	end
 
 	-- Using python.as_itemgetter
 	for i = 0, 10 do
 		-- Check that the items were added
-		assert(d_items[i] == i)
+		self:assertEqual(d_items[i], i)
 	end
 end
 
-function main.AsFunction_Eval()
+function main:AsFunction_Eval()
 	local eval_asfunction = python.as_function(python.eval)
 
 	-- Even though eval is already a wrapper (userdata),
 	-- it should be possible to wrap it one more time
-	assert(eval_asfunction("1 + 1") == 2)
+	self:assertEqual(eval_asfunction("1 + 1"), 2)
 end
 
-function main.Eval()
+function main:Eval()
 	local testcases = {
 		{ "1", 1 },
 		{ "1 + 1", 2 },
@@ -251,20 +178,12 @@ function main.Eval()
 		{ "10 / 5", 2 },
 		{ "2 ** 4", 16 },
 		{ "10 % 7", 3 },
-		{ "[]", python.list() },
-		{ "[1]", python.list(1) },
-		{ "[1, 2, 3]", python.list(1, 2, 3) },
-		{ "{}", python.dict() },
-		{ "{'a': 1}", python.dict("a", 1) },
-		{ "{'a': 1, 'b': 2, 'c': 3}", python.dict("a", 1, "b", 2, "c", 3) },
+		{ "{}", python.builtins.dict() },
+		{ "{'a': 1}", python.builtins.dict{a=1} },
+		{ "{'a': 1, 'b': 2, 'c': 3}", python.builtins.dict{a=1, b=2, c=3} },
 		{ "()", python.tuple() },
 		{ "(1, )", python.tuple(1) },
 		{ "(1, 2, 3)", python.tuple(1, 2, 3) },
-		{ "set()", python.set() },
-		{ "{1}", python.set(1) },
-		{ "{1}", python.set(1, 1, 1) },
-		{ "{1, 2, 3}", python.set(1, 2, 3) },
-		{ "{1, 2, 3}", python.set(1, 2, 3, 2, 2, 1) },
 		{ "abs(-1)", 1 },
 		{ "abs(1)", 1 },
 		{ "len([])", 0 },
@@ -276,14 +195,14 @@ function main.Eval()
 		{ "max([1, 2, 3, -1])", 3 },
 		{ "min([1, 2, 3, -1])", -1 },
 		{ "next(iter([1, 2, 3, -1]))", 1 },
-		{ "sorted([1, -5, 3, -1])", python.list(-5, -1, 1, 3) },
+		{ "sorted([1, -5, 3, -1])", python.builtins.list(python.tuple(-5, -1, 1, 3)) },
 		{ "sum([1, -5, 3, -1])", -2 },
 		{ "None", python.none },
 		{ "None", nil },
 		{ "False", false },
 		{ "True", true },
 		{ "(lambda x: x*2)(10)", 20 },
-		{ "(lambda x: x*2)([1, 2, 3])", python.list(1, 2, 3, 1, 2, 3) },
+		{ "(lambda x: x*2)([1, 2, 3])", python.builtins.list(python.tuple(1, 2, 3, 1, 2, 3)) },
 		{ "''", "" },
 		{ "'ascii'", "ascii" },
 		{ "'ação'", "ação" },
@@ -298,27 +217,23 @@ function main.Eval()
 		if not ok then
 			error("failed test #" .. testindex .. ": " .. tostring(ret))
 		end
-		if not python.equal(output, ret) then
-			error("failed test #" .. testindex .. ": obtained " .. tostring(ret))
-		end
+		self:_assertPyEqual(output, ret, 'test #' .. testindex)
 	end
 end
 
-function main.EvalWithDictionary()
+function main:EvalWithDictionary()
 	local noscope = python.builtins.dict{} -- empty scope
 	local expression = 'a*b+c'
 
-	do
-		local exc = testerror(python.builtins.TypeError, python.eval, expression, python.args{locals=noscope})
-		local excmsg = tostring(exc)
-		assert(excmsg:find('eval must be given globals and locals when called without a frame'), excmsg)
-	end
+	self:_assertRaisesPyRegex(python.builtins.TypeError,
+		'eval must be given globals and locals when called without a frame',
+		python.eval, expression, python.args{locals=noscope})
 
 	-- Without scope, 'a', 'b' and 'c' don't exist, so NameError should be raised
 	local test_name_error = function(t)
-		local exc = testerror(python.builtins.NameError, python.eval, expression, python.args(t))
-		local excmsg = tostring(exc)
-		assert(excmsg:find('name \'[abc]\' is not defined'), excmsg)
+		self:_assertRaisesPyRegex(python.builtins.NameError,
+			"name '[abc]' is not defined",
+			python.eval, expression, python.args(t))
 	end
 
 	test_name_error{noscope}
@@ -332,7 +247,7 @@ function main.EvalWithDictionary()
 	-- With these names in the scope, the expression can be evaluated
 	local test_ok = function(t)
 		local value = python.eval(expression, python.args(t))
-		assert(value == expected_value, value)
+		self:assertEqual(value, expected_value)
 	end
 
 	test_ok{scope}
@@ -344,21 +259,15 @@ function main.EvalWithDictionary()
 	test_ok{locals=scope, globals=scope}
 end
 
-function main.ExecWithDictionary()
+function main:ExecWithDictionary()
 	local noscope = python.builtins.dict{}
 	local statement = 'd=a*b+c'
 
---	do
---		local exc = testerror(python.builtins.TypeError, python.exec, statement, python.args{locals=noscope})
---		local excmsg = tostring(exc)
---		assert(excmsg:find('exec must be given globals and locals when called without a frame'), excmsg)
---	end
-
 	-- Without scope, 'a', 'b' and 'c' don't exist, so NameError should be raised
 	local test_name_error = function(t)
-		local exc = testerror(python.builtins.NameError, python.exec, statement, python.args(t))
-		local excmsg = tostring(exc)
-		assert(excmsg:find('name \'[abc]\' is not defined'), excmsg)
+		self:_assertRaisesPyRegex(python.builtins.NameError,
+			"name '[abc]' is not defined",
+			python.exec, statement, python.args(t))
 	end
 
 	test_name_error{noscope}
@@ -374,7 +283,7 @@ function main.ExecWithDictionary()
 	local test_ok = function(t)
 		python.exec(statement, python.args(t))
 		local checkval = python.eval(checkcode, python.args(t))
-		assert(checkval, tostring(checkval))
+		self:assertTrue(checkval)
 		scope = python.builtins.dict{a=2, b=3, c=5} -- clear scope
 	end
 
@@ -387,19 +296,19 @@ function main.ExecWithDictionary()
 	test_ok{locals=scope, globals=scope}
 end
 
-function main.ExecAssignment()
-	local varname = newname()
+function main:ExecAssignment()
+	local varname = self:_newname()
 	local value = math.random(128)
 
 	python.exec(varname .. " = " .. value)
 
-	assert(python.eval(varname) == value)
+	self:assertEqual(python.eval(varname), value)
 end
 
-function main.ExecCall()
-	local funcname = newname()
-	local varname = newname()
-	local paramname = newname()
+function main:ExecCall()
+	local funcname = self:_newname()
+	local varname = self:_newname()
+	local paramname = self:_newname()
 	local value = math.random(128)
 
 	python.exec(varname .. " = None")
@@ -408,93 +317,92 @@ function main.ExecCall()
 		"\t" .. varname .. " = " .. paramname)
 	python.exec(funcname .. "(" .. value .. ")")
 
-	assert(python.eval(varname) == value)
+	self:assertEqual(python.eval(varname), value)
 end
 
-function main.ExecAssert()
+function main:ExecAssert()
 	python.exec("assert True")
-	testerror(python.builtins.AssertionError, python.exec, "assert False")
+	self:_assertRaisesPyExc(python.builtins.AssertionError, python.exec, "assert False")
 end
 
-function main.ExecPass()
+function main:ExecPass()
 	python.exec("pass")
 end
 
-function main.ExecAugmentedAssignment()
-	local varname = newname()
+function main:ExecAugmentedAssignment()
+	local varname = self:_newname()
 
 	python.exec(varname .. " = 321")
 	python.exec(varname .. " += 123")
-	assert(python.eval(varname) == 444)
+	self:assertEqual(python.eval(varname), 444)
 end
 
-function main.ExecDel()
-	local varname = newname()
+function main:ExecDel()
+	local varname = self:_newname()
 
 	python.exec(varname .. " = { 1:1 }")
-	assert(python.equal(python.eval(varname), python.dict(1, 1)))
+	self:_assertPyEqual(python.eval(varname), python.builtins.dict{1})
 	python.exec("del " .. varname .. "[1]")
-	assert(python.equal(python.eval(varname), python.dict()))
+	self:_assertPyEqual(python.eval(varname), python.builtins.dict())
 end
 
-function main.ExecReturn()
-	testerror(python.builtins.SyntaxError, python.exec, "return")
+function main:ExecReturn()
+	self:_assertRaisesPyExc(python.builtins.SyntaxError, python.exec, "return")
 end
 
-function main.ExecYield()
-	testerror(python.builtins.SyntaxError, python.exec, "yield")
+function main:ExecYield()
+	self:_assertRaisesPyExc(python.builtins.SyntaxError, python.exec, "yield")
 end
 
-function main.ExecRaise()
-	testerror(python.builtins.RuntimeError, python.exec, "raise RuntimeError")
+function main:ExecRaise()
+	self:_assertRaisesPyExc(python.builtins.RuntimeError, python.exec, "raise RuntimeError")
 end
 
-function main.ExecBreak()
-	testerror(python.builtins.SyntaxError, python.exec, "break")
+function main:ExecBreak()
+	self:_assertRaisesPyExc(python.builtins.SyntaxError, python.exec, "break")
 end
 
-function main.ExecContinue()
-	testerror(python.builtins.SyntaxError, python.exec, "continue")
+function main:ExecContinue()
+	self:_assertRaisesPyExc(python.builtins.SyntaxError, python.exec, "continue")
 end
 
-function main.ExecImport()
-	local alias = newname()
-
-	python.exec("import lupa")
-	python.exec("from lupa import LuaRuntime as " .. alias)
+function main:ExecImport()
+	python.exec("from math import sqrt")
+	local sqrt2 = python.eval("sqrt(2)")
+	self:assertEqual(sqrt2, math.sqrt(2))
 end
 
-function main.ExecGlobal()
-	local varname = newname()
+function main:ExecGlobal()
+	local varname = self:_newname()
 
 	python.exec("global " .. varname)
 end
 
-function main.ExecNonLocal()
-	local varname = newname()
-	testerror(python.builtins.SyntaxError, python.exec, "nonlocal " .. varname)
+function main:ExecNonLocal()
+	local varname = self:_newname()
+	self:_assertRaisesPyExc(python.builtins.SyntaxError, python.exec, "nonlocal " .. varname)
 end
 
-function main.IterList()
-	local l = python.list(1, 2, 3)
+function main:IterTuple()
+	local t = python.tuple(1, 2, 3)
 	local i = 1
-	for li in python.iter(l) do
-		assert(li == i)
+	for ti in python.iter(t) do
+		self:assertEqual(i, ti)
 		i = i + 1
 	end
 end
 
-function main.IterDict()
-	local d = python.dict("a", 1, "b", 2, "c", 3)
+function main:IterDict()
 	local t = {a=1, b=2, c=3}
+	local d = python.builtins.dict(t)
 	for di in python.iter(d) do
-		assert(d[di] == t[di])
+		self:assertTrue(d[di], t[di])
 		t[di] = nil
 	end
 end
 
-function main.IterClass()
-	local classname = newname()
+function main:IterClass()
+	local classname = self:_newname()
 
 	python.exec("class " .. classname .. ":\n" ..
 		"\tdef __init__(self, obj):\n" ..
@@ -502,61 +410,61 @@ function main.IterClass()
 		"\tdef __iter__(self):\n" ..
 		"\t\treturn iter(self.obj)")
 
-	local l = python.list(1, 2, 3)
-	local instance = python.eval(classname)(l)
+	local t = python.tuple(1, 2, 3)
+	local instance = python.eval(classname)(t)
 
 	local i = 1
 	for ci in python.iter(instance) do
-		assert(ci == i)
+		self:assertEqual(ci, i)
 		i = i + 1
 	end
 end
 
-function main.None()
-	assert(python.equal(python.none, nil))
-	assert(tostring(python.none) == "None")
-	assert(python.builtins.str(python.none) == "None")
-	assert(python.builtins.str(nil) == "None")
-	assert(python.none)
-	assert(python.none ~= nil)
+function main:None()
+	self:_assertPyEqual(python.none, nil)
+	self:assertNotNil(python.none)
+	self:assertTrue(python.none)
+	self:assertEqual(tostring(python.none), "None")
+	self:assertEqual(python.builtins.str(python.none), "None")
+	self:assertEqual(python.builtins.str(nil), "None")
 
-	local d = python.dict(nil, nil)
+	local d = python.builtins.dict{[python.none]=python.none}
 
 	local entered = false
 	for di in python.iter(d) do
-		assert(di == python.none)
+		self:assertEqual(di, python.none)
 		entered = true
 	end
 	assert(entered)
 
 	entered = false
 	for k, v in python.iterex(python.as_attrgetter(d).items()) do
-		assert(k == python.none)
-		assert(v == nil)
+		self:assertEqual(k, python.none)
+		self:assertEqual(v, nil)
 		entered = true
 	end
 	assert(entered)
 
-	local l = python.list(nil, nil)
+	local t = python.tuple(nil, nil)
 	entered = false
-	for li in python.iter(l) do
-		assert(li == python.none)
+	for ti in python.iter(t) do
+		self:assertEqual(ti, python.none)
 		entered = true
 	end
 	assert(entered)
 end
 
-function main.IterEx()
-	local d = python.dict("a", 1, "b", 2, "c", 3)
+function main:IterEx()
 	local t = {a=1, b=2, c=3}
+	local d = python.builtins.dict(t)
 	local d_items = python.as_attrgetter(d).items()
 
 	for key, value in python.iterex(d_items) do
-		assert(t[key] == value)
+		self:assertEqual(t[key], value)
 		t[key] = nil
 	end
 
-	local generatorname = newname()
+	local generatorname = self:_newname()
 	python.exec("def " .. generatorname .. "(n):\n" ..
 		"\tfor i in range(n):\n" ..
 		"\t\tyield i, -i, 2*i, i*i")
@@ -566,50 +474,50 @@ function main.IterEx()
 
 	i = 0
 	for a, b, c, d in python.iterex(g) do
-		assert(a == i)
-		assert(b == -i)
-		assert(c == 2*i)
-		assert(d == i*i)
+		self:assertEqual(a, i)
+		self:assertEqual(b, -i)
+		self:assertEqual(c, 2*i)
+		self:assertEqual(d, i*i)
 		i = i + 1
 	end
 end
 
-function main.Enumerate()
+function main:Enumerate()
 	local l, entered
 
-	l = python.list(0, 1, 2, 3)
+	t = python.tuple(0, 1, 2, 3)
 	entered = false
-	for i, li in python.enumerate(l) do
-		assert(i == li)
+	for i, ti in python.enumerate(t) do
+		self:assertEqual(i, ti)
 		entered = true
 	end
 	assert(entered)
 
-	l = python.list()
+	t = python.tuple()
 	entered = false
-	for i, li in python.enumerate(l) do
+	for i, ti in python.enumerate(t) do
 		entered = true
 	end
 	assert(not entered)
 end
 
-function main.CallPyFunction()
+function main:CallPyFunction()
 	local returnall = python.eval("lambda *args: args")
 	local t = {}
 	for i = 1, 1000 do
 		t[i] = i
 	end
 	local ret = returnall(table.unpack(t))
-	assert(python.builtins.len(ret) == 1000)
+	self:assertEqual(python.builtins.len(ret), 1000)
 	for i = 1, 1000 do
-		assert(ret[i-1] == i)
+		self:assertEqual(ret[i-1], i)
 	end
 end
 
-function main.Callback()
+function main:Callback()
 	local cb_called = false
 	local function lua_cb() cb_called = true end
-	local python_cb = python.wrap(lua_cb)
+	local python_cb = self:_makeLambda(lua_cb)
 
 	assert(not cb_called)
 	python_cb()
@@ -624,13 +532,13 @@ function main.Callback()
 	end
 	local callme = python.eval("lambda f, *args: f(*args)")
 	local ret = callme(returnalot, 1000)
-	assert(python.builtins.len(ret) == 1000)
+	self:assertEqual(python.builtins.len(ret), 1000)
 	for i = 1, 1000 do
-		assert(ret[i-1] == i)
+		self:assertEqual(ret[i-1], i)
 	end
 end
 
-function main.Roundtrip()
+function main:Roundtrip()
 	local testcases = {
 		nil,
 		python.none,
@@ -646,7 +554,7 @@ function main.Roundtrip()
 	}
 
 	for testindex, testcase in ipairs(testcases) do
-		local python_cb = python.wrap(function() return testcase end)
+		local python_cb = self:_makeLambda(function() return testcase end)
 		local ok, ret = pcall(python_cb)
 		if not ok then
 			error("failed test #" .. testindex .. ": " .. tostring(ret))
@@ -657,7 +565,7 @@ function main.Roundtrip()
 	end
 end
 
-function main.MultipleReturnValues()
+function main:MultipleReturnValues()
 	local testcases = {
 		{
 			input = { "a", "b", "c" },
@@ -681,26 +589,24 @@ function main.MultipleReturnValues()
 		},
 	}
 
-	local identity = python.wrap(function(...) return ... end)
+	local identity = self:_makeLambda(function(...) return ... end)
 
 	for testindex, testcase in ipairs(testcases) do
 		local ok, ret = pcall(identity, table.unpack(testcase.input))
 		if not ok then
 			error("failed test #" .. testindex .. ": " .. tostring(ret))
 		end
-		if not python.equal(ret, testcase.output) then
-			error("failed test #" .. testindex .. ": obtained " .. tostring(ret))
-		end
+		self:_assertPyEqual(ret, testcase.output, 'test #' .. testindex)
 	end
 	
 end
 
-function main.NumberFromLuaToPython()
+function main:NumberFromLuaToPython()
 	local eqvalue = python.eval('lambda a, b: a == eval(b)')
 	local eqvalueself = function(o) return eqvalue(o, tostring(o)) end
-	local isnan = python._.math.isnan
-	local isinteger = function(o) return isinstance(o, 'int', 'long') end
-	local isfloat = function(o) return isinstance(o, 'float') end
+	local isnan = python.eval('math.isnan')
+	local isinteger = function(o) return self:_isinstance(o, 'int', 'long') end
+	local isfloat = function(o) return self:_isinstance(o, 'float') end
 
 	assert(isinteger(1))
 	assert(eqvalue(1, '1'))
@@ -721,7 +627,7 @@ function main.NumberFromLuaToPython()
 	assert(eqvalue(math.huge, 'float("inf")'))
 	assert(eqvalue(-math.huge, 'float("-inf")'))
 
-	if hasintegers then
+	if math.tointeger ~= nil then
 		-- If Lua supports integers, the subtype is preserved
 		assert(isfloat(1.0))
 
@@ -737,7 +643,7 @@ function main.NumberFromLuaToPython()
 	end
 end
 
-function main.NumberFromPythonToLua()
+function main:NumberFromPythonToLua()
 	utils:TestNumEq(python.eval('1'), 1)
 	utils:TestNumEq(python.eval('1.0'), 1.0)
 	utils:TestNumEq(python.eval('math.pi'), math.pi)
@@ -757,14 +663,14 @@ function main.NumberFromPythonToLua()
 
 	-- 10^500 >> 2^63 - 1 (signed 64-bit integer maximum value)
 	-- 10^500 >> 1.8*10^308 (double-precision floating-point format maximum value)
-	testoverflow('10**500')
+	self:_assertPyOverflow('10**500')
 
 	-- -10^500 << -2^63 (signed 64-bit integer minimum value)
 	-- -10^500 << -1.8*10^308 (double-precision floating-point format minimum value)
-	testoverflow('-10**500')
+	self:_assertPyOverflow('-10**500')
 end
 
-function main.NoHandler()
+function main:NoHandler()
 	python.set_overflow_handler(nil)
 	local proxy = python.eval('10**500')
 	local proxytype = python.builtins.type(proxy)
@@ -772,65 +678,70 @@ function main.NoHandler()
 	       proxytype == python.builtins.long)
 	local proxystr = python.builtins.str(proxy)
 	local expectedstr = '1' .. string.rep('0', 500)
-	assert(proxystr == expectedstr)
+	self:assertEqual(proxystr, expectedstr)
 end
 
-function main.EmptyHandler()
+function main:EmptyHandler()
 	python.set_overflow_handler(function() end)
-	assert(python.eval('10**500') == nil)
+	self:assertNil(python.eval('10**500'))
 end
 
-function main.HandlerWithLuaError()
+function main:HandlerWithLuaError()
 	python.set_overflow_handler(function() error() end)
-	testoverflow('2**64')
-	testoverflow('10**500')
+	self:_assertPyOverflow('2**64')
+	self:_assertPyOverflow('10**500')
 end
 
-function main.FloatFallbackHandler()
+function main:FloatFallbackHandler()
 	python.set_overflow_handler(python.builtins.float)
-	assert(python.eval('2**64') == 2^64)
-	testoverflow('10**500')
+	self:assertEqual(python.eval('2**64'), 2^64)
+	self:_assertPyOverflow('10**500')
 end
 
-function main.GarbageCollector()
+function main:GarbageCollector()
 	-- Test garbage collection, by making sure that the
 	-- amount of memory used by Lua before and after calling f
 	-- stays the same (that is, all garbage is collected)
 	local function testgc(f)
-		local count = collectallgarbage()
-		for i = 1, 100 do
+		local before, after, diff
+		local ntests = 10
+		local ncycles = 20
+		for _ = 1, ntests do
+			for _ = 1, ncycles do collectgarbage() end
+			before = collectgarbage('count')
 			f()
-			local newcount = collectallgarbage()
-			if newcount == count then
+			for _ = 1, ncycles do collectgarbage() end
+			after = collectgarbage('count')
+			diff = after - before
+			if diff == 0 then
 				return
 			end
-			count = newcount
 		end
-		error(count*1024 .. " bytes leaked")
+		error(string.format("%d bytes leaked", diff*1024))
 	end
 
 	testgc(function() end)	
-	testgc(function() python.list() end)
-	testgc(function() local l = python.list() end)
+	testgc(function() python.tuple() end)
+	testgc(function() local t = python.tuple() end)
 	testgc(function() python.eval('lua.eval("{}")') end)
-	testgc(function() local t = { python.list() } end)
+	testgc(function() local t = { python.tuple() } end)
 	testgc(function()
-		local d = python.dict()
+		local d = python.builtins.dict()
 		d.ref = d
 	end)
 	testgc(function()
-		local t = { dict = python.dict() }
+		local t = { dict = python.builtins.dict() }
 		t.dict.ref = t
 		setmetatable(t, {__mode = "v"})
 	end)
 end
 
-function main.ExceptionMessage()
-	local exc = testerror(python.builtins.Exception, python.exec, 'raise Exception("xyz")')
-	assert(exc.__str__() == 'xyz')
+function main:ExceptionMessage()
+	local exc = self:_assertRaisesPyExc(python.builtins.Exception, python.exec, 'raise Exception("xyz")')
+	self:assertEqual(tostring(exc), 'xyz')
 end
 
-function main.MissingReference()
+function main:MissingReference()
 	-- Test if tables can have finalizers
 	local tableshavegc = false
 	setmetatable({}, {__gc = function() tableshavegc = true end})
@@ -859,28 +770,38 @@ function main.MissingReference()
 		collectgarbage()
 		assert(t ~= nil, "finalizer not called")
 		assert(t.obj ~= nil, "table graph not restored")
-		testerrorsubstr('deleted python object', f, t.obj)
+		local err = self:assertRaises(f, t.obj)
+		local errmsg = "deleted python object"
+		if type(err) == 'string' then
+			self:assertStringFind(err, errmsg)
+		else
+			self:assertType(err, "userdata")
+			self:_assertPyType(err.value, python.builtins.ReferenceError)
+			local arg = python.as_attrgetter(err.value).args
+			self:_assertPyLength(arg, 1)
+			self:assertEqual(arg[0], errmsg)
+		end
 	end
 
-	testmissingref(python.dict(), print)                                                -- __tostring
-	testmissingref(python.dict(), function(o) print(o[1]) end)                          -- __index
-	testmissingref(python.dict(), function(o) print(python.as_itemgetter(o)[1]) end)    -- __index (itemgetter)
-	testmissingref(python.dict(), function(o) print(python.as_attrgetter(o).items) end) -- __index (attrgetter)
-	testmissingref(python.dict(), function(o) o[1] = 1 end)                             -- __newindex
-	testmissingref(python.dict(), function(o) python.as_itemgetter(o)[1] = 1 end)       -- __newindex (itemgetter)
-	testmissingref(python.wrap(print), function(o) python.as_attrgetter(o).a = 1 end)   -- __newindex (attrgetter)
-	testmissingref(python.wrap(print), function(o) o() end)                             -- __call
+	testmissingref(python.builtins.dict(), function(obj) print(obj) end)                              -- __tostring
+	testmissingref(python.builtins.dict(), function(obj) print(obj[1]) end)                           -- __index
+	testmissingref(python.builtins.dict(), function(obj) print(python.as_itemgetter(obj)[1]) end)     -- __index (itemgetter)
+	testmissingref(python.builtins.dict(), function(obj) print(python.as_attrgetter(obj).items) end)  -- __index (attrgetter)
+	testmissingref(python.builtins.dict(), function(obj) obj[1] = 1 end)                              -- __newindex
+	testmissingref(python.builtins.dict(), function(obj) python.as_itemgetter(obj)[1] = 1 end)        -- __newindex (itemgetter)
+	testmissingref(self:_makeLambda(print), function(obj) python.as_attrgetter(obj).a = 1 end)        -- __newindex (attrgetter)
+	testmissingref(self:_makeLambda(print), function(obj) obj() end)                                  -- __call
 
-	testmissingref(python.dict(), python.builtins.len)   -- call from Python
-	testmissingref(python.dict(), python.iter)           -- iteration
-	testmissingref(python.dict(), python.iterex)         -- iteration (explode tuples)
-	testmissingref(python.dict(), python.enumerate)      -- iteration (with indices)
-	testmissingref(python.dict(), python.as_function)    -- cast to function
-	testmissingref(python.dict(), python.as_itemgetter)  -- item getter protocol
-	testmissingref(python.dict(), python.as_attrgetter)  -- attribute getter protocol
+	testmissingref(python.builtins.dict(), python.builtins.len)   -- call from Python
+	testmissingref(python.builtins.dict(), python.iter)           -- iteration
+	testmissingref(python.builtins.dict(), python.iterex)         -- iteration (explode tuples)
+	testmissingref(python.builtins.dict(), python.enumerate)      -- iteration (with indices)
+	testmissingref(python.builtins.dict(), python.as_function)    -- cast to function
+	testmissingref(python.builtins.dict(), python.as_itemgetter)  -- item getter protocol
+	testmissingref(python.builtins.dict(), python.as_attrgetter)  -- attribute getter protocol
 end
 
-function main.LuaTableIterable()
+function main:LuaTableIterable()
 	-- Tests table as iterable in Python
 	-- Calls python.builtins.dict with t
 	-- and checks if dictionary matches table
@@ -894,10 +815,10 @@ function main.LuaTableIterable()
 		for key in pairs(t) do
 			tsize = tsize + 1
 		end
-		assert(dsize == tsize)
+		self:assertEqual(dsize, tsize)
 		for key, tvalue in pairs(t) do
 			dvalue = d[key]
-			assert(dvalue == tvalue)
+			self:assertEqual(dvalue, tvalue)
 		end
 	end
 
@@ -918,7 +839,7 @@ function main.LuaTableIterable()
 	testtableiterable{[coroutine.create(function() end)]=10}
 end
 
-function main.PythonArguments()
+function main:PythonArguments()
 	-- Identity function
 	local identity = python.eval("lambda *args, **kwargs: (args, kwargs)")
 
@@ -929,32 +850,24 @@ function main.PythonArguments()
 		local ret = identity(...)
 		local retargs = ret[0]
 		local retkwargs = ret[1]
-		assert(#args == python.builtins.len(retargs))
+		self:assertEqual(#args, python.builtins.len(retargs))
 		for i, arg in ipairs(args) do
-			assert(retargs[i-1] == arg)
+			self:assertEqual(retargs[i-1], arg)
 		end
 		for key, value in pairs(kwargs) do
-			assert(retkwargs[key] == value)
+			self:assertEqual(retkwargs[key], value)
 		end
 		local items = python.as_attrgetter(retkwargs).items()
 		for key, value in python.iterex(items) do
-			assert(kwargs[key] == value)
+			self:assertEqual(kwargs[key], value)
 		end
 	end
 
-	-- Tests python.args to throw a Lua error and match regex
-	local function testpyargs_luaerror(regex, ...)
-		local ok, err = pcall(python.args, ...)
-		assert(not ok, "expected error")
-		assert(type(err) == 'string', "expected string error")
-		assert(err:find(regex), "expected regex to match")
-	end
-	
-	testerrorsubstr('table expected, got no value', python.args)
-	testerrorsubstr('table expected, got number', python.args, 1)
-	testerrorsubstr('table index out of range', python.args, {[0]=7})
-	testerrorsubstr('table index out of range', python.args, {[2]=7})
-	testerrorsubstr('table key is neither an integer nor a string', python.args, {[true]=7})
+	self:assertRaisesRegex('table expected, got no value', python.args)
+	self:assertRaisesRegex('table expected, got number', python.args, 1)
+	self:_assertRaisesPyRegex(python.builtins.IndexError, 'table index out of range', python.args, {[0]=7})
+	self:_assertRaisesPyRegex(python.builtins.IndexError, 'table index out of range', python.args, {[2]=7})
+	self:_assertRaisesPyRegex(python.builtins.TypeError, 'table key is neither an integer nor a string', python.args, {[true]=7})
 
 	testpyargs({}, {})
 	testpyargs({}, {}, python.args{})
@@ -968,18 +881,96 @@ function main.PythonArguments()
 	testpyargs({1, 2, 3}, {a=1, b=2, c=3}, python.args{a=1, b=2, c=3, 1, 2, 3})
 end
 
-function main.ReloadLibrary()
+function main:ReloadLibrary()
 	local lib1 = python
 	package.loaded.lupafromlua = nil
 	local lib2 = require "lupafromlua"
-	assert(lib1 == lib2, "not the same library")
+	self:assertEqual(lib1, lib2, "not the same library")
 end
 
-function main.LuaError()
+function main:LuaErrorRoundtrip()
 	local foo = function() error('xyz') end
-	local exc = testerror(python.LuaError, python.wrap(foo))
-	local excstr = tostring(exc)
-	assert(excstr:find('xyz'), excstr)
+	self:assertRaisesRegex('xyz', self:_makeLambda(foo))
+end
+
+function main:ExceptionMessageWithTraceback()
+	local err = self:assertRaises(python.eval, "0/0")
+	self:assertType(err, "userdata")
+	local errmsg = tostring(err)
+	self:assertStringFind(errmsg, "Traceback")
+	self:assertStringFind(errmsg, "ZeroDivisionError")
+end
+
+------------------------------------------------------------------------------
+-- Private methods
+------------------------------------------------------------------------------
+
+main._assertPyType = main:makeBinOpAssert('self.python.builtins.isinstance(%s, %s)', 'isinstance(%s, %s)')
+main._pyequal = python.eval('lambda a, b: a == b')
+main._assertPyEqual = main:makeBinOpAssert('self._pyequal(%s, %s)', "%s == %s [in Python]")
+main._assertPyLength = main:makeBinOpAssert('self.python.builtins.len(%s) == %s', "len(%s) == %s")
+
+-- Generate unique name for Python variable name
+function main:_newname()
+	if self._namecnt == nil then
+		self._namecnt = 0
+	end
+	local name = 't' .. self._namecnt
+	self._namecnt = self._namecnt + 1
+	return name
+end
+
+-- Checks if the 'obj' (Python object) is an instance
+-- of at least one of the types listed after (strings)
+-- If a type doesn't exist, it is simply ignored
+function main:_isinstance(obj, ...)
+	local builtins = python.builtins
+	local isinstance = builtins.isinstance
+	local getbuiltin = function(name)
+		return builtins[name]
+	end
+	for _, typename in ipairs{...} do
+		local ok, typeobj = pcall(getbuiltin, typename)
+		if ok and isinstance(obj, typeobj) then
+			return true
+		end
+	end
+	return false
+end
+
+-- Call f(...) and expect it to raise a Python exception
+-- Asserts exception is of type 'etype'
+-- Returns Python exception object (as attribute getter)
+function main:_assertRaisesPyExc(etype, f, ...)
+	local exc = self:assertRaises(f, ...)
+	self:assertType(exc, "userdata")
+	self:_assertPyType(exc.value, python.builtins.BaseException)
+	self:_assertPyType(exc.value, exc.etype)
+	self:assertNotNil(exc.traceback)
+	self:_assertPyType(exc.value, etype, tostring, exc)
+	return python.as_attrgetter(exc.value)
+end
+
+-- Call f(...) and expect it to raise a Python exception
+-- Asserts exception is of type 'etype' and contains
+-- 'substr' when converted to string
+-- Returns the exception message
+function main:_assertRaisesPyRegex(etype, substr, f, ...)
+	local obj = self:_assertRaisesPyExc(etype, f, ...)
+	local errmsg = tostring(obj)
+	self:assertStringFind(errmsg, substr)
+	return errmsg
+end
+
+-- Try evaluating 'number' (a string) and expect an OverflowError
+-- to be raised by Python. Returns the exception object
+function main:_assertPyOverflow(number)
+	return self:_assertRaisesPyExc(python.builtins.OverflowError, python.eval, number)
+end
+
+-- Python lambda constructor
+function main:_makeLambda(f)
+	return python.eval("lambda f: lambda *args: f(*args)")(f)
 end
 
 return main

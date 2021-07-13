@@ -2,6 +2,9 @@
 -- Test running script
 ---------------------------------
 
+-- Lua 5.1 compatibility
+require "tests.compat"
+
 local utils = require 'tests.utils'
 
 local t = {}
@@ -15,13 +18,17 @@ function t.safe_run()
 	local tb = require "tests.main"
 	utils:Print("####", nil, "Running all tests")
 	for testname, testfunc in pairs(tb) do
-		if type(testfunc) == "function" then
-			local ok, errmsg = xpcall(testfunc, debug.traceback)
+		if type(testfunc) == "function" and
+				type(testname) == "string" and
+				not testname:find("^_") then
+			local ok, errmsg = xpcall(
+					function() return testfunc(tb) end,
+					function(o) return debug.traceback(tostring(o)) end)
 			if ok then
 				utils:Print("PASS", "green", testname)
 				passed = passed + 1
 			else
-				utils:Print("FAIL", "red", testname .. '\n' .. tostring(errmsg))
+				utils:Print("FAIL", "red", testname .. '\n' .. errmsg)
 				failed = failed + 1
 			end
 		end
@@ -42,6 +49,13 @@ function t.run()
 end
 
 if type(arg) == "table" and arg[0]:find("test%.lua$") then
+	for i, argi in ipairs(arg) do
+		if argi == '--seed' then
+			local seed = assert(arg[i+1], 'expected seed')
+			local seednum = assert(tonumber(seed), 'seed not a number')
+			math.randomseed(seednum)
+		end
+	end
 	t.run()
 end
 
