@@ -109,37 +109,4 @@ function utils:Print(tag, tagcolor, message)
 	print("[\27[" .. tagcolorcode .. "m " .. tag .. "\27[0m ] " .. message)
 end
 
--- utils:TestTypeEq(a, b)
--- Asserts a and b are of the same type
-function utils:TestTypeEq(a, b)
-	ta, tb = type(a), type(b)
-	assert(ta == tb,
-		tostring(a) .. " and " .. tostring(b) ..
-		" have different type (" .. ta ..
-		" and " .. tb .. " respectively)")
-end
-
--- utils:TestMathTypeEq(a, b)
--- Asserts a and b are of the same mathematical type
--- Observation:
---   If math.type is not defined, this function always succeeds
-function utils:TestMathTypeEq(a, b)
-	if math.type then
-		ta, tb = math.type(a), math.type(b)
-		assert(ta == tb,
-			tostring(a) .. " and " .. tostring(b) ..
-			" have different mathematical types (" ..
-			ta .. " and " .. tb .. " respectively)")
-	end
-end
-
--- utils:TestNumEq(a, b)
--- Asserts a and b are of the same type, mathematical type
--- (if supported) and numerical value
-function utils:TestNumEq(a, b)
-	self:TestTypeEq(a, b)
-	self:TestMathTypeEq(a, b)
-	assert(a == b, tostring(a) .. " != " .. tostring(b))
-end
-
 return utils

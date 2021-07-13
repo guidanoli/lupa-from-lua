@@ -4,7 +4,6 @@
 -----------------------------------------------------------
 
 local Suite = require "tests.suite"
-local utils = require "tests.utils"
 local python = require "lupafromlua"
 
 -----------------------------------------------------------
@@ -435,7 +434,7 @@ function main:None()
 		self:assertEqual(di, python.none)
 		entered = true
 	end
-	assert(entered)
+	self:assertTrue(entered)
 
 	entered = false
 	for k, v in python.iterex(python.as_attrgetter(d).items()) do
@@ -443,7 +442,7 @@ function main:None()
 		self:assertEqual(v, nil)
 		entered = true
 	end
-	assert(entered)
+	self:assertTrue(entered)
 
 	local t = python.tuple(nil, nil)
 	entered = false
@@ -451,7 +450,7 @@ function main:None()
 		self:assertEqual(ti, python.none)
 		entered = true
 	end
-	assert(entered)
+	self:assertTrue(entered)
 end
 
 function main:IterEx()
@@ -491,14 +490,14 @@ function main:Enumerate()
 		self:assertEqual(i, ti)
 		entered = true
 	end
-	assert(entered)
+	self:assertTrue(entered)
 
 	t = python.tuple()
 	entered = false
 	for i, ti in python.enumerate(t) do
 		entered = true
 	end
-	assert(not entered)
+	self:assertFalse(entered)
 end
 
 function main:CallPyFunction()
@@ -519,9 +518,9 @@ function main:Callback()
 	local function lua_cb() cb_called = true end
 	local python_cb = self:_makeLambda(lua_cb)
 
-	assert(not cb_called)
+	self:assertFalse(cb_called)
 	python_cb()
-	assert(cb_called)
+	self:assertTrue(cb_called)
 
 	local function returnalot(n)
 		local t = {}
@@ -602,61 +601,53 @@ function main:MultipleReturnValues()
 end
 
 function main:NumberFromLuaToPython()
-	local eqvalue = python.eval('lambda a, b: a == eval(b)')
-	local eqvalueself = function(o) return eqvalue(o, tostring(o)) end
-	local isnan = python.eval('math.isnan')
-	local isinteger = function(o) return self:_isinstance(o, 'int', 'long') end
-	local isfloat = function(o) return self:_isinstance(o, 'float') end
+	self:_assertPyInteger(1)
+	self:_assertPyEqualEval(1, '1')
+	self:_assertPyEqualEval(1.0, '1.0')
+	self:_assertPyEqualEval(1.0, '1')
+	self:_assertPyEqualEval(1, '1.0')
 
-	assert(isinteger(1))
-	assert(eqvalue(1, '1'))
-	assert(eqvalue(1.0, '1.0'))
-	assert(eqvalue(1.0, '1'))
-	assert(eqvalue(1, '1.0'))
+	self:_assertPyType(1.2, python.builtins.float)
+	self:_assertPyEqualEval(1.2, '1.2')
 
-	assert(isfloat(1.2))
-	assert(eqvalue(1.2, '1.2'))
-
-	assert(isfloat(math.pi))
-	assert(eqvalue(math.pi, 'math.pi'))
+	self:_assertPyType(math.pi, python.builtins.float)
+	self:_assertPyEqualEval(math.pi, 'math.pi')
 
 	-- According to IEEE 754, a nan value is considered not equal to any value, including itself
 	-- So we can't really compare Python and Lua nan's but we can use math.isnan from Python
-	assert(isnan(0/0))
+	self:_assertPyIsNan(0/0)
 
-	assert(eqvalue(math.huge, 'float("inf")'))
-	assert(eqvalue(-math.huge, 'float("-inf")'))
+	self:_assertPyEqualEval(math.huge, 'float("inf")')
+	self:_assertPyEqualEval(-math.huge, 'float("-inf")')
 
 	if math.tointeger ~= nil then
 		-- If Lua supports integers, the subtype is preserved
-		assert(isfloat(1.0))
+		self:_assertPyType(1.0, python.builtins.float)
 
-		assert(isinteger(math.maxinteger))
-		assert(eqvalueself(math.maxinteger))
+		self:_assertPyInteger(math.maxinteger)
+		self:_assertPyEqualEvalRoundtrip(math.maxinteger)
 
-		assert(isinteger(math.mininteger))
-		assert(eqvalueself(math.mininteger))
+		self:_assertPyInteger(math.mininteger)
+		self:_assertPyEqualEvalRoundtrip(math.mininteger)
 	else
 		-- If Lua doesn't support integers, the subtype is
 		-- infered by whether the number has a decimal part or not
-		assert(isinteger(1.0))
+		self:_assertPyInteger(1.0)
 	end
 end
 
 function main:NumberFromPythonToLua()
-	utils:TestNumEq(python.eval('1'), 1)
-	utils:TestNumEq(python.eval('1.0'), 1.0)
-	utils:TestNumEq(python.eval('math.pi'), math.pi)
+	self:assertEqualNumbers(python.eval('1'), 1)
+	self:assertEqualNumbers(python.eval('1.0'), 1.0)
+	self:assertEqualNumbers(python.eval('math.pi'), math.pi)
 
 	-- According to IEEE 754, a nan value is considered not equal to any value, including itself
 	-- So we can't really compare Python and Lua nan's but we can compare Python nan to itself and
 	-- except that the comparison will return false
-	local nan = python.eval('float("nan")')
-	utils:TestMathTypeEq(nan, 0/0)
-	assert(nan ~= nan, "Python nan converted to Lua is not nan")
+	self:assertNan(python.eval('float("nan")'))
 
-	utils:TestNumEq(python.eval('float("inf")'), 1/0)
-	utils:TestNumEq(python.eval('float("-inf")'), -1/0)
+	self:assertEqualNumbers(python.eval('float("inf")'), 1/0)
+	self:assertEqualNumbers(python.eval('float("-inf")'), -1/0)
 
 	-- Make sure overflows are not ignored
 	python.set_overflow_handler(function() error() end)
@@ -673,10 +664,8 @@ end
 function main:NoHandler()
 	python.set_overflow_handler(nil)
 	local proxy = python.eval('10**500')
-	local proxytype = python.builtins.type(proxy)
-	assert(proxytype == python.builtins.int or
-	       proxytype == python.builtins.long)
-	local proxystr = python.builtins.str(proxy)
+	self:_assertPyInteger(proxy)
+	local proxystr = tostring(proxy)
 	local expectedstr = '1' .. string.rep('0', 500)
 	self:assertEqual(proxystr, expectedstr)
 end
@@ -768,12 +757,12 @@ function main:MissingReference()
 		obj = nil
 		t = nil
 		collectgarbage()
-		assert(t ~= nil, "finalizer not called")
-		assert(t.obj ~= nil, "table graph not restored")
+		self:assertNotNil(t, "finalizer not called")
+		self:assertNotNil(t.obj, "table graph not restored")
 		local err = self:assertRaises(f, t.obj)
 		local errmsg = "deleted python object"
 		if type(err) == 'string' then
-			self:assertStringFind(err, errmsg)
+			self:assertSubstring(err, errmsg)
 		else
 			self:assertType(err, "userdata")
 			self:_assertPyType(err.value, python.builtins.ReferenceError)
@@ -897,18 +886,28 @@ function main:ExceptionMessageWithTraceback()
 	local err = self:assertRaises(python.eval, "0/0")
 	self:assertType(err, "userdata")
 	local errmsg = tostring(err)
-	self:assertStringFind(errmsg, "Traceback")
-	self:assertStringFind(errmsg, "ZeroDivisionError")
+	self:assertSubstring(errmsg, "Traceback")
+	self:assertSubstring(errmsg, "ZeroDivisionError")
 end
 
 ------------------------------------------------------------------------------
--- Private methods
+-- Private methods and fields
 ------------------------------------------------------------------------------
 
 main._assertPyType = main:makeBinOpAssert('self.python.builtins.isinstance(%s, %s)', 'isinstance(%s, %s)')
-main._pyequal = python.eval('lambda a, b: a == b')
-main._assertPyEqual = main:makeBinOpAssert('self._pyequal(%s, %s)', "%s == %s [in Python]")
+main._pyEqual = python.eval('lambda a, b: a == b')
+main._assertPyEqual = main:makeBinOpAssert('self._pyEqual(%s, %s)', "%s == %s [in Python]")
+main._pyEqualEval = python.eval('lambda a, b: a == eval(b)')
+main._assertPyEqualEval = main:makeBinOpAssert('self._pyEqualEval(%s, %s)', "%s == eval(%s) [in Python]")
 main._assertPyLength = main:makeBinOpAssert('self.python.builtins.len(%s) == %s', "len(%s) == %s")
+main._pyMathIsNan = python.eval("math.isnan")
+main._assertPyIsNan = main:makeBinOpAssert('self._pyMathIsNan(%s)', "%s is nan")
+
+if python.builtins.hasattr(python.builtins, "long") then
+	main._pyIntegerType = python.tuple(python.builtins.long, python.builtins.int) -- Python 2
+else
+	main._pyIntegerType = python.builtins.int -- Python 3
+end
 
 -- Generate unique name for Python variable name
 function main:_newname()
@@ -920,22 +919,16 @@ function main:_newname()
 	return name
 end
 
--- Checks if the 'obj' (Python object) is an instance
--- of at least one of the types listed after (strings)
--- If a type doesn't exist, it is simply ignored
-function main:_isinstance(obj, ...)
-	local builtins = python.builtins
-	local isinstance = builtins.isinstance
-	local getbuiltin = function(name)
-		return builtins[name]
-	end
-	for _, typename in ipairs{...} do
-		local ok, typeobj = pcall(getbuiltin, typename)
-		if ok and isinstance(obj, typeobj) then
-			return true
-		end
-	end
-	return false
+function main:_assertPyEqualEvalRoundtrip(o, ...)
+	self:_assertPyEqualEval(o, tostring(o))
+end
+
+function main:_assertPyInteger(o, ...)
+	self:_assertPyType(o, self._pyIntegerType, ...)
+end
+
+function main:_assertPyFloat(o, ...)
+	self:_assertPyType(o, python.builtins.float, ...)
 end
 
 -- Call f(...) and expect it to raise a Python exception
@@ -956,9 +949,10 @@ end
 -- 'substr' when converted to string
 -- Returns the exception message
 function main:_assertRaisesPyRegex(etype, substr, f, ...)
+	self:assertType(substr, "string")
 	local obj = self:_assertRaisesPyExc(etype, f, ...)
 	local errmsg = tostring(obj)
-	self:assertStringFind(errmsg, substr)
+	self:assertSubstring(errmsg, substr)
 	return errmsg
 end
 
