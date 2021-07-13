@@ -422,6 +422,7 @@ end
 function main:None()
 	self:_assertPyEqual(python.none, nil)
 	self:assertNotNil(python.none)
+	self:_assertPyIsObject(python.none)
 	self:assertTrue(python.none)
 	self:assertEqual(tostring(python.none), "None")
 	self:assertEqual(python.builtins.str(python.none), "None")
@@ -759,16 +760,18 @@ function main:MissingReference()
 		collectgarbage()
 		self:assertNotNil(t, "finalizer not called")
 		self:assertNotNil(t.obj, "table graph not restored")
+		self:_assertPyIsObject(t.obj, "still a Python object")
 		local err = self:assertRaises(f, t.obj)
 		local errmsg = "deleted python object"
 		if type(err) == 'string' then
 			self:assertSubstring(err, errmsg)
-		else
-			self:assertType(err, "userdata")
+		elseif python.is_exc_info(err) then
 			self:_assertPyType(err.value, python.builtins.ReferenceError)
 			local arg = python.as_attrgetter(err.value).args
 			self:_assertPyLength(arg, 1)
 			self:assertEqual(arg[0], errmsg)
+		else
+			error("error object of type " .. type(err))
 		end
 	end
 
@@ -884,10 +887,43 @@ end
 
 function main:ExceptionMessageWithTraceback()
 	local err = self:assertRaises(python.eval, "0/0")
-	self:assertType(err, "userdata")
+	self:_assertPyIsExcInfo(err)
 	local errmsg = tostring(err)
 	self:assertSubstring(errmsg, "Traceback")
 	self:assertSubstring(errmsg, "ZeroDivisionError")
+end
+
+function main:IsNotExcInfo()
+	self:_assertPyIsNotExcInfo(nil)
+	self:_assertPyIsNotExcInfo(123)
+	self:_assertPyIsNotExcInfo(true)
+	self:_assertPyIsNotExcInfo({})
+	self:_assertPyIsNotExcInfo(print)
+	self:_assertPyIsNotExcInfo(coroutine.create(function() end))
+	self:_assertPyIsNotExcInfo(python.none)
+	self:_assertPyIsNotExcInfo(python.builtins.BaseException)
+	self:_assertPyIsNotExcInfo(python.builtins.BaseException(123))
+end
+
+function main:IsNotPythonObject()
+	self:_assertPyIsNotObject(nil)
+	self:_assertPyIsNotObject(123)
+	self:_assertPyIsNotObject(true)
+	self:_assertPyIsNotObject({})
+	self:_assertPyIsNotObject(print)
+	self:_assertPyIsNotObject(coroutine.create(function() end))
+end
+
+function main:IsPythonObject()
+	self:_assertPyIsObject(python.none) -- None
+	local tuple = python.as_attrgetter(python.builtins.tuple)
+	self:_assertPyIsObject(tuple.__len__) -- Unbound Methods
+	local mytuple = python.as_attrgetter(tuple())
+	self:_assertPyIsObject(mytuple.__len__) -- Bound Methods
+	local sum = python.builtins.sum
+	self:_assertPyIsObject(sum) -- Functions
+	self:_assertPyIsObject(python.as_function(sum)) -- Wrapped functions
+	self:_assertPyIsObject(python.builtins.BaseException) -- Types
 end
 
 ------------------------------------------------------------------------------
@@ -931,15 +967,34 @@ function main:_assertPyFloat(o, ...)
 	self:_assertPyType(o, python.builtins.float, ...)
 end
 
+function main:_assertPyIsObject(o, ...)
+	self:assertTrue(python.is_object(o), ...)
+end
+
+function main:_assertPyIsNotObject(o, ...)
+	self:assertFalse(python.is_object(o), ...)
+end
+
+function main:_assertPyIsExcInfo(o, ...)
+	self:assertTrue(python.is_exc_info(o), ...)
+end
+
+function main:_assertPyIsNotExcInfo(o, ...)
+	self:assertFalse(python.is_exc_info(o), ...)
+end
+
 -- Call f(...) and expect it to raise a Python exception
 -- Asserts exception is of type 'etype'
 -- Returns Python exception object (as attribute getter)
 function main:_assertRaisesPyExc(etype, f, ...)
+	self:_assertPyIsObject(etype)
 	local exc = self:assertRaises(f, ...)
-	self:assertType(exc, "userdata")
+	self:_assertPyIsExcInfo(exc)
+	self:_assertPyIsObject(exc.value)
 	self:_assertPyType(exc.value, python.builtins.BaseException)
+	self:_assertPyIsObject(exc.etype)
 	self:_assertPyType(exc.value, exc.etype)
-	self:assertNotNil(exc.traceback)
+	self:_assertPyIsObject(exc.traceback)
 	self:_assertPyType(exc.value, etype, tostring, exc)
 	return python.as_attrgetter(exc.value)
 end
