@@ -765,7 +765,7 @@ function main:MissingReference()
 		local errmsg = "deleted python object"
 		if type(err) == 'string' then
 			self:assertSubstring(err, errmsg)
-		elseif python.is_exc_info(err) then
+		elseif python.is_error(err) then
 			self:_assertPyType(err.value, python.builtins.ReferenceError)
 			local arg = python.as_attrgetter(err.value).args
 			self:_assertPyLength(arg, 1)
@@ -887,22 +887,22 @@ end
 
 function main:ExceptionMessageWithTraceback()
 	local err = self:assertRaises(python.eval, "0/0")
-	self:_assertPyIsExcInfo(err)
+	self:_assertPyIsError(err)
 	local errmsg = tostring(err)
 	self:assertSubstring(errmsg, "Traceback")
 	self:assertSubstring(errmsg, "ZeroDivisionError")
 end
 
 function main:IsNotExcInfo()
-	self:_assertPyIsNotExcInfo(nil)
-	self:_assertPyIsNotExcInfo(123)
-	self:_assertPyIsNotExcInfo(true)
-	self:_assertPyIsNotExcInfo({})
-	self:_assertPyIsNotExcInfo(print)
-	self:_assertPyIsNotExcInfo(coroutine.create(function() end))
-	self:_assertPyIsNotExcInfo(python.none)
-	self:_assertPyIsNotExcInfo(python.builtins.BaseException)
-	self:_assertPyIsNotExcInfo(python.builtins.BaseException(123))
+	self:_assertPyIsNotError(nil)
+	self:_assertPyIsNotError(123)
+	self:_assertPyIsNotError(true)
+	self:_assertPyIsNotError({})
+	self:_assertPyIsNotError(print)
+	self:_assertPyIsNotError(coroutine.create(function() end))
+	self:_assertPyIsNotError(python.none)
+	self:_assertPyIsNotError(python.builtins.BaseException)
+	self:_assertPyIsNotError(python.builtins.BaseException(123))
 end
 
 function main:IsNotPythonObject()
@@ -924,6 +924,22 @@ function main:IsPythonObject()
 	self:_assertPyIsObject(sum) -- Functions
 	self:_assertPyIsObject(python.as_function(sum)) -- Wrapped functions
 	self:_assertPyIsObject(python.builtins.BaseException) -- Types
+end
+
+function main:LuaErrorWithTraceback()
+	local ok, ret = pcall(python.exec, [[lua.execute('error(...)', Exception(123))]])
+	self:_assertPyIsError(ret)
+	local tb = ret.traceback
+	self:assertNotNil(tb)
+	local has_lua = false
+	while tb.tb_next do
+		if tb.tb_frame.f_code.co_filename:find('%.lua$') then
+			has_lua = true
+			break
+		end
+		tb = tb.tb_next
+	end
+	self:assertTrue(has_lua)
 end
 
 ------------------------------------------------------------------------------
@@ -975,12 +991,12 @@ function main:_assertPyIsNotObject(o, ...)
 	self:assertFalse(python.is_object(o), ...)
 end
 
-function main:_assertPyIsExcInfo(o, ...)
-	self:assertTrue(python.is_exc_info(o), ...)
+function main:_assertPyIsError(o, ...)
+	self:assertTrue(python.is_error(o), ...)
 end
 
-function main:_assertPyIsNotExcInfo(o, ...)
-	self:assertFalse(python.is_exc_info(o), ...)
+function main:_assertPyIsNotError(o, ...)
+	self:assertFalse(python.is_error(o), ...)
 end
 
 -- Call f(...) and expect it to raise a Python exception
@@ -989,7 +1005,7 @@ end
 function main:_assertRaisesPyExc(etype, f, ...)
 	self:_assertPyIsObject(etype)
 	local exc = self:assertRaises(f, ...)
-	self:_assertPyIsExcInfo(exc)
+	self:_assertPyIsError(exc)
 	self:_assertPyIsObject(exc.value)
 	self:_assertPyType(exc.value, python.builtins.BaseException)
 	self:_assertPyIsObject(exc.etype)
