@@ -43,6 +43,32 @@ function main:LuaVersion()
 	self:assertGreaterEqual(#semvernums, 2)
 	self:assertEqual(semvernums[1], lupa_lua_major)
 	self:assertEqual(semvernums[2], lupa_lua_minor)
+
+	-- Oldest Lua version supported: 5.1
+	self:assertGreaterEqual(lupa_lua_major, 5)
+	if lupa_lua_major == 5 then
+		self:assertGreaterEqual(lupa_lua_minor, 1)
+	end
+end
+
+function main:PythonVersion()
+	local version = python.PYTHON_VERSION
+	local version_a = python.as_attrgetter(version)
+	self:assertEqual(version[0], version_a.major)
+	self:assertEqual(version[1], version_a.minor)
+	self:assertEqual(version[2], version_a.micro)
+	self:assertEqual(version[3], version_a.releaselevel)
+	self:assertEqual(version[4], version_a.serial)
+
+	-- Oldest Python versions supported: 2.7 and 3.5
+	if version_a.major == 2 then
+		self:assertGreaterEqual(version_a.minor, 7)
+	else
+		self:assertGreaterEqual(version_a.major, 3)
+		if version_a.major == 3 then
+			self:assertGreaterEqual(version_a.minor, 5)
+		end
+	end
 end
 
 function main:AsAttributeGetter_List()
@@ -180,9 +206,9 @@ function main:Eval()
 		{ "{}", python.builtins.dict() },
 		{ "{'a': 1}", python.builtins.dict{a=1} },
 		{ "{'a': 1, 'b': 2, 'c': 3}", python.builtins.dict{a=1, b=2, c=3} },
-		{ "()", python.tuple() },
-		{ "(1, )", python.tuple(1) },
-		{ "(1, 2, 3)", python.tuple(1, 2, 3) },
+		{ "()", python.pack() },
+		{ "(1, )", python.pack(1) },
+		{ "(1, 2, 3)", python.pack(1, 2, 3) },
 		{ "abs(-1)", 1 },
 		{ "abs(1)", 1 },
 		{ "len([])", 0 },
@@ -194,14 +220,14 @@ function main:Eval()
 		{ "max([1, 2, 3, -1])", 3 },
 		{ "min([1, 2, 3, -1])", -1 },
 		{ "next(iter([1, 2, 3, -1]))", 1 },
-		{ "sorted([1, -5, 3, -1])", python.builtins.list(python.tuple(-5, -1, 1, 3)) },
+		{ "sorted([1, -5, 3, -1])", python.builtins.list(python.pack(-5, -1, 1, 3)) },
 		{ "sum([1, -5, 3, -1])", -2 },
 		{ "None", python.none },
 		{ "None", nil },
 		{ "False", false },
 		{ "True", true },
 		{ "(lambda x: x*2)(10)", 20 },
-		{ "(lambda x: x*2)([1, 2, 3])", python.builtins.list(python.tuple(1, 2, 3, 1, 2, 3)) },
+		{ "(lambda x: x*2)([1, 2, 3])", python.builtins.list(python.pack(1, 2, 3, 1, 2, 3)) },
 		{ "''", "" },
 		{ "'ascii'", "ascii" },
 		{ "'ação'", "ação" },
@@ -383,7 +409,7 @@ function main:ExecNonLocal()
 end
 
 function main:IterTuple()
-	local t = python.tuple(1, 2, 3)
+	local t = python.pack(1, 2, 3)
 	local i = 1
 	for ti in python.iter(t) do
 		self:assertEqual(i, ti)
@@ -409,7 +435,7 @@ function main:IterClass()
 		"\tdef __iter__(self):\n" ..
 		"\t\treturn iter(self.obj)")
 
-	local t = python.tuple(1, 2, 3)
+	local t = python.pack(1, 2, 3)
 	local instance = python.eval(classname)(t)
 
 	local i = 1
@@ -445,7 +471,7 @@ function main:None()
 	end
 	self:assertTrue(entered)
 
-	local t = python.tuple(nil, nil)
+	local t = python.pack(nil, nil)
 	entered = false
 	for ti in python.iter(t) do
 		self:assertEqual(ti, python.none)
@@ -485,7 +511,7 @@ end
 function main:Enumerate()
 	local l, entered
 
-	t = python.tuple(0, 1, 2, 3)
+	t = python.pack(0, 1, 2, 3)
 	entered = false
 	for i, ti in python.enumerate(t) do
 		self:assertEqual(i, ti)
@@ -493,7 +519,7 @@ function main:Enumerate()
 	end
 	self:assertTrue(entered)
 
-	t = python.tuple()
+	t = python.pack()
 	entered = false
 	for i, ti in python.enumerate(t) do
 		entered = true
@@ -569,23 +595,23 @@ function main:MultipleReturnValues()
 	local testcases = {
 		{
 			input = { "a", "b", "c" },
-			output = python.tuple("a", "b", "c")
+			output = python.pack("a", "b", "c")
 		},
 		{
 			input = { "a", "b", nil, "c" },
-			output = python.tuple("a", "b", nil, "c"),
+			output = python.pack("a", "b", nil, "c"),
 		},
 		{
 			input = { "a", "b", nil }, -- nil is ignored in Lua
-			output = python.tuple("a", "b"),
+			output = python.pack("a", "b"),
 		},
 		{
 			input = { "a", "b", python.none },
-			output = python.tuple("a", "b", python.none),
+			output = python.pack("a", "b", python.none),
 		},
 		{
 			input = { "a", "b", nil, python.none }, -- nil is no longer ignored
-			output = python.tuple("a", "b", python.none, python.none),
+			output = python.pack("a", "b", python.none, python.none),
 		},
 	}
 
@@ -711,10 +737,10 @@ function main:GarbageCollector()
 	end
 
 	testgc(function() end)	
-	testgc(function() python.tuple() end)
-	testgc(function() local t = python.tuple() end)
+	testgc(function() python.pack(1, 2, 3) end)
+	testgc(function() local t = python.pack(1, 2, 3) end)
 	testgc(function() python.eval('lua.eval("{}")') end)
-	testgc(function() local t = { python.tuple() } end)
+	testgc(function() local t = { python.pack(1, 2, 3) } end)
 	testgc(function()
 		local d = python.builtins.dict()
 		d.ref = d
@@ -942,6 +968,33 @@ function main:LuaErrorWithTraceback()
 	self:assertTrue(has_lua)
 end
 
+function main:UnpackTuple()
+	local t = python.pack(1, 2, 3)
+	self:_assertPyType(t, python.builtins.tuple)
+	self:_assertPyLength(t, 3)
+	for i = 1, 3 do
+		self:assertEqual(t[i-1], i)
+	end
+	local upt = table.pack(python.unpack(t))
+	self:assertEqual(upt.n, 3)
+	for i = 1, 3 do
+		self:assertEqual(upt[i], i)
+	end
+end
+
+function main:PackUnpackMany()
+	local t = {}
+	local n = 1000
+	for i = 1, n do t[i] = math.random() end
+	local tup = python.pack(table.unpack(t))
+	self:_assertPyType(tup, python.builtins.tuple)
+	self:_assertPyLength(tup, n)
+	for i = 1, n do self:assertEqual(t[i], tup[i-1], i) end
+	local t1 = table.pack(python.unpack(tup))
+	self:assertEqual(t1.n, n)
+	for i = 1, n do self:assertEqual(t[i], t1[i], i) end
+end
+
 ------------------------------------------------------------------------------
 -- Private methods and fields
 ------------------------------------------------------------------------------
@@ -956,7 +1009,7 @@ main._pyMathIsNan = python.eval("math.isnan")
 main._assertPyIsNan = main:makeBinOpAssert('self._pyMathIsNan(%s)', "%s is nan")
 
 if python.builtins.hasattr(python.builtins, "long") then
-	main._pyIntegerType = python.tuple(python.builtins.long, python.builtins.int) -- Python 2
+	main._pyIntegerType = python.pack(python.builtins.long, python.builtins.int) -- Python 2
 else
 	main._pyIntegerType = python.builtins.int -- Python 3
 end
